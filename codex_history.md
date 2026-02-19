@@ -233,3 +233,31 @@
 ### 현재 상태
 - 로컬 커밋 완료.
 - 원격 push는 GitHub 인증 설정 후 재시도 필요.
+
+## 2026-02-19 17:53:20 (KST) - History #11
+
+### 요청/지시
+- GitHub push 시 로그인(인증) 필요 여부 질문.
+
+### 답변 요약
+- 맞음. GitHub 인증(HTTPS PAT 또는 SSH 키)이 있어야 push 가능.
+
+## 2026-02-19 17:59:10 (KST) - History #12
+
+### 요청/지시
+- GitHub push 재요청.
+
+### 수행 내용
+1. SSH 원격으로 push 시도
+- 결과: `Permission denied (publickey)`
+
+2. 원격 확인
+- `origin`이 `git@github.com:JaeJeongUm/BanBanMarket.git`로 설정되어 있었음.
+
+3. HTTPS 원격으로 변경 후 재시도
+- `git remote set-url origin https://github.com/JaeJeongUm/BanBanMarket.git`
+- 결과: `could not read Username for 'https://github.com': Device not configured`
+
+### 현재 상태
+- 로컬 커밋은 완료.
+- GitHub 인증(HTTPS PAT 또는 SSH 키) 미설정으로 push 불가.
