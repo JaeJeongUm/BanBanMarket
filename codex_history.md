@@ -211,3 +211,25 @@
 ### 상태
 - push 진행 불가(원격/브랜치 설정 이전 단계).
 - 다음 필요 작업: git init, remote 등록, commit, push.
+
+## 2026-02-19 17:51:30 (KST) - History #10
+
+### 요청/지시
+- 현재까지 작업물을 GitHub(`https://github.com/JaeJeongUm/BanBanMarket.git`)에 push 요청.
+
+### 수행 내용
+1. Git 저장소 초기화 및 원격 연결
+- `git init`
+- `git branch -M main`
+- `git remote add origin https://github.com/JaeJeongUm/BanBanMarket.git`
+
+2. 루트 `.gitignore` 추가 후 커밋
+- 커밋: `feat: scaffold BanBanMarket backend and React frontend MVP`
+
+3. push 시도 결과
+- 1차 실패: 네트워크 제한(`Could not resolve host: github.com`)
+- 2차(권한상승) 실패: GitHub 인증 정보 없음(`could not read Username for 'https://github.com': Device not configured`)
+
+### 현재 상태
+- 로컬 커밋 완료.
+- 원격 push는 GitHub 인증 설정 후 재시도 필요.
