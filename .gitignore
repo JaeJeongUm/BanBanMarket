@@ -1,0 +1,14 @@
+.DS_Store
+.vscode/
+.claude/
+
+# Environment files
+.env
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Backend build
+target/
+backend/target/

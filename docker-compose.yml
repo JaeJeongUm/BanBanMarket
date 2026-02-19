@@ -1,0 +1,41 @@
+version: '3.9'
+services:
+  postgres:
+    image: postgres:16
+    container_name: banban-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-banbanmarket}
+      POSTGRES_USER: ${POSTGRES_USER:-banban}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-banban1234}
+    ports:
+      - "5432:5432"
+    volumes:
+      - banban-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-banban} -d ${POSTGRES_DB:-banbanmarket}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: banban-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-banbanmarket}
+      DATABASE_USERNAME: ${POSTGRES_USER:-banban}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-banban1234}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+    ports:
+      - "8080:8080"
+
+volumes:
+  banban-postgres-data:

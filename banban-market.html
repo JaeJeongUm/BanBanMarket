@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>반반마켓 — 동네 공동구매</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Gmarket+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #FF4B35;
+    --primary-light: #FF6B55;
+    --primary-pale: #FFF0EE;
+    --bg: #F5F3EF;
+    --card: #FFFFFF;
+    --text: #1A1714;
+    --text-sub: #6B6561;
+    --text-muted: #AAA5A0;
+    --border: #E8E4DF;
+    --green: #2DBE7A;
+    --yellow: #FFB930;
+    --blue: #3B82F6;
+    --shadow: 0 4px 20px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+
+  .header { background:var(--card); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; padding:0 16px; }
+  .header-inner { max-width:480px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; height:56px; }
+  .logo { font-family:'Gmarket Sans',sans-serif; font-weight:700; font-size:20px; color:var(--primary); letter-spacing:-0.5px; }
+  .logo span { color:var(--text); }
+  .header-icons { display:flex; gap:16px; }
+  .icon-btn { background:none; border:none; cursor:pointer; font-size:20px; color:var(--text-sub); position:relative; }
+  .badge { position:absolute; top:-4px; right:-6px; background:var(--primary); color:white; font-size:9px; font-weight:700; width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+
+  .location-bar { background:var(--card); padding:10px 16px; border-bottom:1px solid var(--border); }
+  .location-bar-inner { max-width:480px; margin:0 auto; display:flex; align-items:center; gap:6px; }
+  .loc-text { font-weight:700; font-size:14px; cursor:pointer; }
+  .loc-notice { margin-left:auto; background:var(--primary-pale); color:var(--primary); font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px; }
+
+  .page { display:none; max-width:480px; margin:0 auto; padding:16px; padding-bottom:110px; }
+  .page.active { display:block; }
+
+  .score-card { background:linear-gradient(135deg,var(--primary) 0%,#FF6B35 100%); border-radius:16px; padding:16px 20px; color:white; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 6px 24px rgba(255,75,53,0.3); cursor:pointer; transition:transform 0.15s; }
+  .score-card:hover { transform:translateY(-2px); }
+  .score-bar-bg { background:rgba(255,255,255,0.25); height:6px; border-radius:3px; margin-top:10px; }
+  .score-bar-fill { background:white; height:6px; border-radius:3px; width:87%; }
+  .score-bar-text { display:flex; justify-content:space-between; font-size:10px; opacity:0.8; margin-top:4px; }
+  .score-num { font-family:'Gmarket Sans',sans-serif; font-size:36px; font-weight:700; line-height:1; }
+
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; margin-top:20px; }
+  .section-title { font-family:'Gmarket Sans',sans-serif; font-weight:700; font-size:16px; }
+  .section-more { color:var(--text-muted); font-size:12px; cursor:pointer; background:none; border:none; }
+
+  .cats { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:16px; scrollbar-width:none; }
+  .cats::-webkit-scrollbar { display:none; }
+  .cat-btn { background:var(--card); border:1.5px solid var(--border); border-radius:20px; padding:6px 14px; font-size:13px; font-weight:500; cursor:pointer; white-space:nowrap; transition:all 0.15s; color:var(--text-sub); display:flex; align-items:center; gap:4px; font-family:'Noto Sans KR',sans-serif; }
+  .cat-btn.active { background:var(--primary); border-color:var(--primary); color:white; font-weight:700; }
+
+  .room-card { background:var(--card); border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:var(--shadow); cursor:pointer; transition:all 0.18s; border:1.5px solid transparent; }
+  .room-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-lg); border-color:var(--primary-pale); }
+  .room-top { display:flex; gap:12px; margin-bottom:12px; }
+  .room-img { width:70px; height:70px; border-radius:12px; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:32px; flex-shrink:0; }
+  .room-info { flex:1; }
+  .room-cat { font-size:11px; color:var(--primary); font-weight:700; margin-bottom:3px; }
+  .room-name { font-size:15px; font-weight:700; line-height:1.3; margin-bottom:4px; }
+  .room-host { font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:4px; }
+  .host-score { background:var(--primary-pale); color:var(--primary); font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px; }
+  .room-price { font-size:14px; font-weight:700; color:var(--primary); margin-top:2px; }
+  .room-price span { font-size:11px; color:var(--text-muted); font-weight:400; }
+  .progress-area { margin-bottom:10px; }
+  .progress-top { display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px; }
+  .prog-label { color:var(--text-sub); }
+  .prog-count { font-weight:700; }
+  .prog-count.full { color:var(--green); }
+  .progress-bg { background:var(--bg); height:8px; border-radius:4px; overflow:hidden; }
+  .progress-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,var(--primary),var(--primary-light)); transition:width 0.6s ease; }
+  .progress-fill.full { background:linear-gradient(90deg,var(--green),#5DE3A0); }
+  .room-bottom { display:flex; align-items:center; justify-content:space-between; }
+  .room-tags { display:flex; gap:6px; flex-wrap:wrap; }
+  .tag { font-size:11px; padding:3px 8px; border-radius:6px; font-weight:500; }
+  .tag-loc { background:#EEF2FF; color:var(--blue); }
+  .tag-time { background:#FFF8E7; color:var(--yellow); }
+  .join-btn { background:var(--primary); color:white; border:none; border-radius:10px; padding:8px 16px; font-size:13px; font-weight:700; cursor:pointer; transition:all 0.15s; font-family:'Noto Sans KR',sans-serif; white-space:nowrap; }
+  .join-btn:hover { background:#e63e27; }
+  .join-btn.joined { background:var(--bg); color:var(--text-muted); border:1.5px solid var(--border); }
+  .join-btn.full-btn { background:var(--text-muted); cursor:default; }
+
+  .fab { position:fixed; bottom:80px; right:calc(50% - 240px + 16px); background:var(--primary); color:white; border:none; border-radius:50px; padding:14px 22px; font-size:15px; font-weight:700; cursor:pointer; box-shadow:0 6px 24px rgba(255,75,53,0.4); display:flex; align-items:center; gap:8px; transition:all 0.2s; font-family:'Noto Sans KR',sans-serif; z-index:50; }
+  .fab:hover { transform:translateY(-3px); }
+  .fab.hidden { display:none; }
+
+  .bottom-nav { position:fixed; bottom:0; left:0; right:0; background:var(--card); border-top:1px solid var(--border); z-index:100; }
+  .bottom-nav-inner { max-width:480px; margin:0 auto; display:flex; }
+  .nav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 0 14px; cursor:pointer; color:var(--text-muted); font-size:10px; font-weight:500; transition:color 0.15s; border:none; background:none; font-family:'Noto Sans KR',sans-serif; }
+  .nav-item.active { color:var(--primary); }
+  .nav-icon { font-size:20px; margin-bottom:3px; }
+
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200; display:none; align-items:flex-end; justify-content:center; backdrop-filter:blur(2px); }
+  .modal-overlay.open { display:flex; animation:fadeIn 0.2s ease; }
+  @keyframes fadeIn { from{opacity:0}to{opacity:1} }
+  .modal { background:var(--card); border-radius:24px 24px 0 0; padding:24px 20px 40px; width:100%; max-width:480px; animation:slideUp 0.3s ease; max-height:85vh; overflow-y:auto; }
+  @keyframes slideUp { from{transform:translateY(100%)}to{transform:translateY(0)} }
+  .modal-handle { width:40px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 20px; }
+  .modal-title { font-family:'Gmarket Sans',sans-serif; font-size:20px; font-weight:700; margin-bottom:20px; }
+
+  .form-group { margin-bottom:16px; }
+  .form-label { font-size:13px; font-weight:700; color:var(--text-sub); margin-bottom:6px; display:block; }
+  .form-input,.form-select { width:100%; border:1.5px solid var(--border); border-radius:10px; padding:12px 14px; font-size:14px; font-family:'Noto Sans KR',sans-serif; outline:none; transition:border-color 0.15s; background:var(--card); }
+  .form-input:focus,.form-select:focus { border-color:var(--primary); }
+  .form-row { display:flex; gap:10px; }
+  .form-row .form-group { flex:1; }
+  .place-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; }
+  .place-opt { border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:8px; font-size:13px; }
+  .place-opt.selected { border-color:var(--primary); background:var(--primary-pale); color:var(--primary); font-weight:700; }
+  .submit-btn { width:100%; background:var(--primary); color:white; border:none; border-radius:12px; padding:16px; font-size:16px; font-weight:700; cursor:pointer; margin-top:8px; font-family:'Noto Sans KR',sans-serif; transition:all 0.15s; }
+  .submit-btn:hover { background:#e63e27; }
+  .cancel-btn { width:100%; background:none; border:none; padding:12px; color:var(--text-muted); cursor:pointer; font-size:14px; font-family:'Noto Sans KR',sans-serif; }
+
+  /* 채팅 */
+  .chat-header { display:flex; align-items:center; gap:10px; background:var(--bg); border-radius:12px; padding:10px 12px; margin-bottom:16px; }
+  .chat-room-info { flex:1; }
+  .chat-room-name { font-size:13px; font-weight:700; }
+  .chat-room-sub { font-size:11px; color:var(--text-muted); }
+  .chat-messages { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; max-height:280px; overflow-y:auto; padding:4px 0; }
+  .chat-msg { display:flex; gap:8px; align-items:flex-end; }
+  .chat-msg.me { flex-direction:row-reverse; }
+  .chat-avatar { width:32px; height:32px; border-radius:10px; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .chat-bubble-wrap { display:flex; flex-direction:column; gap:2px; max-width:70%; }
+  .chat-msg.me .chat-bubble-wrap { align-items:flex-end; }
+  .chat-nick { font-size:11px; color:var(--text-muted); margin-bottom:2px; }
+  .chat-bubble { background:var(--bg); padding:8px 12px; border-radius:12px 12px 12px 4px; font-size:13px; line-height:1.5; }
+  .chat-msg.me .chat-bubble { background:var(--primary); color:white; border-radius:12px 12px 4px 12px; }
+  .chat-time { font-size:10px; color:var(--text-muted); }
+  .chat-input-row { display:flex; gap:8px; }
+  .chat-input { flex:1; border:1.5px solid var(--border); border-radius:10px; padding:10px 14px; font-size:14px; font-family:'Noto Sans KR',sans-serif; outline:none; }
+  .chat-input:focus { border-color:var(--primary); }
+  .chat-send-btn { background:var(--primary); color:white; border:none; border-radius:10px; padding:10px 16px; font-size:16px; cursor:pointer; }
+
+  /* 참여자 목록 */
+  .participant-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); }
+  .participant-row:last-child { border-bottom:none; }
+  .participant-avatar { width:40px; height:40px; background:var(--bg); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+  .participant-info { flex:1; }
+  .participant-nick { font-size:14px; font-weight:700; }
+  .participant-detail { font-size:12px; color:var(--text-muted); margin-top:2px; }
+  .p-score-big { background:var(--primary-pale); color:var(--primary); font-size:12px; font-weight:700; padding:3px 10px; border-radius:20px; }
+  .check-status { font-size:13px; font-weight:700; }
+  .check-done { color:var(--green); }
+  .check-wait { color:var(--text-muted); }
+
+  /* 수령 체크 */
+  .check-row { display:flex; align-items:center; gap:12px; padding:12px; background:var(--bg); border-radius:12px; margin-bottom:8px; transition:all 0.2s; }
+  .check-row.checked { background:#F0FDF4; }
+  .check-box { width:28px; height:28px; border-radius:8px; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; flex-shrink:0; font-size:14px; }
+  .check-row.checked .check-box { background:var(--green); border-color:var(--green); color:white; }
+  .check-info { flex:1; }
+  .check-name { font-size:14px; font-weight:700; }
+  .check-qty { font-size:12px; color:var(--text-muted); margin-top:2px; }
+  .check-summary { background:var(--bg); border-radius:10px; padding:12px; margin:12px 0; text-align:center; font-size:14px; }
+  .check-summary b { color:var(--primary); font-size:18px; }
+
+  .detail-hero { font-size:60px; text-align:center; padding:10px 0 16px; }
+  .detail-title { font-size:18px; font-weight:700; margin-bottom:12px; }
+  .detail-section { margin-bottom:16px; }
+  .detail-sec-title { font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px; }
+  .detail-info-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); font-size:14px; }
+  .detail-info-row:last-child { border-bottom:none; }
+  .detail-info-label { color:var(--text-sub); }
+  .detail-info-val { font-weight:700; }
+  .participants-list { display:flex; flex-wrap:wrap; gap:8px; }
+  .participant-chip { background:var(--bg); border-radius:20px; padding:4px 12px; font-size:13px; display:flex; align-items:center; gap:4px; }
+  .p-score { font-size:10px; color:var(--primary); font-weight:700; }
+  .rule-list { display:flex; flex-direction:column; gap:8px; }
+  .rule-item { background:var(--bg); border-radius:10px; padding:10px 12px; font-size:13px; display:flex; align-items:flex-start; gap:8px; }
+
+  /* 탐색 */
+  .search-box { display:flex; align-items:center; background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:10px 14px; gap:10px; margin-bottom:16px; }
+  .search-box input { flex:1; border:none; outline:none; font-size:14px; font-family:'Noto Sans KR',sans-serif; background:transparent; }
+  .trend-tags { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+  .trend-tag { background:var(--card); border:1.5px solid var(--border); border-radius:20px; padding:6px 14px; font-size:13px; cursor:pointer; transition:all 0.15s; }
+  .trend-tag:hover { border-color:var(--primary); color:var(--primary); }
+  .map-placeholder { background:var(--card); border-radius:16px; height:160px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--text-muted); font-size:14px; border:2px dashed var(--border); margin-bottom:16px; }
+  .nearby-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .nearby-count { background:var(--primary-pale); color:var(--primary); font-size:12px; font-weight:700; padding:2px 10px; border-radius:20px; }
+  .nearby-room { display:flex; align-items:center; gap:12px; background:var(--card); border-radius:12px; padding:12px; margin-bottom:8px; cursor:pointer; box-shadow:var(--shadow); transition:all 0.15s; }
+  .nearby-room:hover { transform:translateX(4px); }
+  .nearby-emoji { font-size:28px; width:48px; height:48px; background:var(--bg); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .nearby-name { font-size:13px; font-weight:700; margin-bottom:2px; }
+  .nearby-sub { font-size:11px; color:var(--text-muted); }
+  .nearby-dist { font-size:12px; font-weight:700; color:var(--blue); }
+
+  /* 내 거래 */
+  .trade-tabs { display:flex; background:var(--bg); border-radius:12px; padding:4px; margin-bottom:16px; }
+  .trade-tab { flex:1; padding:8px; text-align:center; font-size:13px; font-weight:700; cursor:pointer; border-radius:8px; transition:all 0.2s; color:var(--text-muted); border:none; background:none; font-family:'Noto Sans KR',sans-serif; }
+  .trade-tab.active { background:var(--card); color:var(--primary); box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+  .trade-card { background:var(--card); border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:var(--shadow); }
+  .trade-top { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .trade-emoji { font-size:28px; width:50px; height:50px; background:var(--bg); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .trade-info { flex:1; }
+  .trade-name { font-size:14px; font-weight:700; margin-bottom:2px; }
+  .trade-sub { font-size:12px; color:var(--text-muted); }
+  .status-badge { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; white-space:nowrap; }
+  .status-active { background:#EFF6FF; color:var(--blue); }
+  .status-done { background:#F0FDF4; color:var(--green); }
+  .status-wait { background:#FFF8E7; color:var(--yellow); }
+  .trade-actions { display:flex; gap:8px; }
+  .trade-btn { flex:1; padding:9px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:none; font-family:'Noto Sans KR',sans-serif; transition:all 0.15s; }
+  .trade-btn-primary { background:var(--primary); color:white; }
+  .trade-btn-primary:hover { background:#e63e27; }
+  .trade-btn-secondary { background:var(--bg); color:var(--text-sub); border:1.5px solid var(--border); }
+  .trade-btn-secondary:hover { border-color:var(--primary); color:var(--primary); }
+  .review-prompt { background:linear-gradient(135deg,#FFF8E7,#FFFBF0); border:1.5px solid var(--yellow); border-radius:12px; padding:12px; margin-bottom:12px; display:flex; align-items:center; gap:10px; }
+  .review-text { flex:1; font-size:13px; font-weight:500; }
+  .review-text b { color:#d4900a; }
+  .review-btn { background:var(--yellow); color:white; border:none; border-radius:8px; padding:7px 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Noto Sans KR',sans-serif; white-space:nowrap; }
+  .history-card { background:var(--card); border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:var(--shadow); }
+  .history-item { display:flex; align-items:center; gap:12px; }
+  .history-info { flex:1; }
+  .history-name { font-size:14px; font-weight:700; margin-bottom:2px; }
+  .history-date { font-size:12px; color:var(--text-muted); margin-bottom:4px; }
+  .history-stars { color:var(--yellow); font-size:13px; }
+  .history-review { font-size:12px; color:var(--text-sub); margin-top:4px; font-style:italic; }
+
+  /* 마이 */
+  .my-profile-card { background:var(--card); border-radius:20px; padding:20px; margin-bottom:16px; box-shadow:var(--shadow); }
+  .my-avatar { width:64px; height:64px; background:linear-gradient(135deg,var(--primary),#FF8C69); border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:32px; margin-bottom:12px; }
+  .my-nick { font-size:20px; font-weight:900; margin-bottom:4px; }
+  .my-sub { font-size:13px; color:var(--text-muted); margin-bottom:16px; }
+  .my-stats { display:flex; background:var(--bg); border-radius:12px; overflow:hidden; }
+  .my-stat { flex:1; padding:12px 8px; text-align:center; border-right:1px solid var(--border); }
+  .my-stat:last-child { border-right:none; }
+  .my-stat-num { font-family:'Gmarket Sans',sans-serif; font-size:22px; font-weight:700; color:var(--primary); }
+  .my-stat-label { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .my-score-section { background:var(--card); border-radius:16px; padding:16px; margin-bottom:16px; box-shadow:var(--shadow); }
+  .score-progress-bg { background:var(--bg); height:10px; border-radius:5px; margin-bottom:6px; overflow:hidden; }
+  .score-progress-fill { height:100%; background:linear-gradient(90deg,var(--primary),#FF8C69); border-radius:5px; width:87%; }
+  .score-milestones { display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); }
+  .score-hist-item { display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:8px 0; border-bottom:1px solid var(--border); }
+  .score-hist-item:last-child { border-bottom:none; }
+  .score-up { color:var(--green); font-weight:700; }
+  .score-down { color:var(--primary); font-weight:700; }
+  .menu-section { background:var(--card); border-radius:16px; margin-bottom:12px; box-shadow:var(--shadow); overflow:hidden; }
+  .menu-section-title { font-size:11px; font-weight:700; color:var(--text-muted); padding:12px 16px 6px; text-transform:uppercase; letter-spacing:0.5px; }
+  .menu-item { display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer; transition:background 0.15s; border-bottom:1px solid var(--border); }
+  .menu-item:last-child { border-bottom:none; }
+  .menu-item:hover { background:var(--bg); }
+  .menu-icon { font-size:20px; }
+  .menu-label { flex:1; font-size:14px; font-weight:500; }
+  .menu-badge { background:var(--primary); color:white; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; }
+
+  /* 후기 모달 */
+  .star-row { display:flex; gap:8px; margin-bottom:16px; }
+  .star-btn { font-size:32px; cursor:pointer; border:none; background:none; opacity:0.3; transition:all 0.1s; }
+  .star-btn.on { opacity:1; transform:scale(1.1); }
+
+  .toast { position:fixed; top:70px; left:50%; transform:translateX(-50%); background:var(--text); color:white; padding:12px 20px; border-radius:12px; font-size:14px; font-weight:500; z-index:999; white-space:nowrap; opacity:0; transition:opacity 0.3s; pointer-events:none; }
+  .toast.show { opacity:1; }
+
+  .empty-state { text-align:center; padding:48px 20px; color:var(--text-muted); }
+  .empty-icon { font-size:48px; margin-bottom:12px; }
+  .empty-text { font-size:15px; font-weight:700; margin-bottom:6px; color:var(--text-sub); }
+  .empty-sub { font-size:13px; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">반반<span>마켓</span></div>
+    <div class="header-icons">
+      <button class="icon-btn" onclick="showToast('새 알림 2개')">🔔<span class="badge">2</span></button>
+      <button class="icon-btn" onclick="showToast('채팅 기능 준비중')">💬</button>
+    </div>
+  </div>
+</header>
+
+<div class="location-bar">
+  <div class="location-bar-inner">
+    <span style="color:var(--primary)">📍</span>
+    <span class="loc-text">서울 마포구 합정동</span>
+    <span style="color:var(--text-muted);font-size:12px">▾</span>
+    <span class="loc-notice" id="locationNotice">지금 3개 진행중</span>
+  </div>
+</div>
+
+<!-- 홈 -->
+<div class="page active" id="page-home">
+  <div class="score-card" onclick="goNav('my')">
+    <div style="flex:1">
+      <div style="font-size:12px;opacity:0.85">내 신뢰 점수 · 탭해서 자세히 보기</div>
+      <div style="font-size:16px;font-weight:700;margin:4px 0">당근유저_마포 🥕</div>
+      <div class="score-bar-bg"><div class="score-bar-fill"></div></div>
+      <div class="score-bar-text"><span>방장 기준 80점</span><span>87/100</span></div>
+    </div>
+    <div style="margin-left:16px;text-align:center">
+      <div class="score-num">87</div>
+      <div style="font-size:11px;opacity:0.8;line-height:1.6;margin-top:2px">거래 12회<br>후기 100%</div>
+    </div>
+  </div>
+
+  <div class="cats" id="catTabs">
+    <button class="cat-btn active" onclick="filterCat(this,'전체')">🏠 전체</button>
+    <button class="cat-btn" onclick="filterCat(this,'식품')">🥩 식품</button>
+    <button class="cat-btn" onclick="filterCat(this,'생활')">🧴 생활용품</button>
+    <button class="cat-btn" onclick="filterCat(this,'육아')">🍼 육아</button>
+    <button class="cat-btn" onclick="filterCat(this,'반려')">🐾 반려동물</button>
+    <button class="cat-btn" onclick="filterCat(this,'기타')">📦 기타</button>
+  </div>
+
+  <div class="section-header">
+    <div class="section-title">🔥 지금 모집중</div>
+    <button class="section-more" onclick="goNav('search')">더보기 →</button>
+  </div>
+  <div id="roomList"></div>
+</div>
+
+<!-- 탐색 -->
+<div class="page" id="page-search">
+  <div class="search-box">
+    <span>🔍</span>
+    <input type="text" placeholder="상품명, 카테고리 검색..." oninput="doSearch(this.value)" id="searchInput">
+  </div>
+  <div style="font-size:13px;font-weight:700;margin-bottom:8px">🔥 인기 검색어</div>
+  <div class="trend-tags">
+    <span class="trend-tag" onclick="searchKw('코스트코')">🛒 코스트코</span>
+    <span class="trend-tag" onclick="searchKw('기저귀')">🍼 기저귀</span>
+    <span class="trend-tag" onclick="searchKw('사료')">🐾 사료</span>
+    <span class="trend-tag" onclick="searchKw('LA갈비')">🥩 LA갈비</span>
+    <span class="trend-tag" onclick="searchKw('세제')">🧴 세제</span>
+    <span class="trend-tag" onclick="searchKw('분유')">🍶 분유</span>
+  </div>
+  <div class="map-placeholder">
+    <div style="font-size:36px">🗺️</div>
+    <div style="font-weight:700">지도에서 근처 방 보기</div>
+    <div style="font-size:12px">실서비스에서 카카오맵 연동 예정</div>
+  </div>
+  <div class="nearby-header">
+    <div style="font-weight:700;font-size:14px">📍 내 근처 공동구매</div>
+    <div class="nearby-count" id="nearbyCount">4개</div>
+  </div>
+  <div id="searchResults"></div>
+</div>
+
+<!-- 내 거래 -->
+<div class="page" id="page-trade">
+  <div class="trade-tabs">
+    <button class="trade-tab active" id="ttab-join" onclick="switchTradeTab('join')">참여중</button>
+    <button class="trade-tab" id="ttab-host" onclick="switchTradeTab('host')">방장</button>
+    <button class="trade-tab" id="ttab-done" onclick="switchTradeTab('done')">완료</button>
+  </div>
+  <div class="review-prompt" id="reviewPrompt" style="display:none">
+    <span style="font-size:24px">⚠️</span>
+    <div class="review-text"><b>후기 작성 필수!</b><br>완료된 거래의 후기를 먼저 작성해야<br>서비스를 계속 이용할 수 있어요.</div>
+    <button class="review-btn" onclick="openReviewModal()">작성하기</button>
+  </div>
+  <div id="tradeContent"></div>
+</div>
+
+<!-- 마이 -->
+<div class="page" id="page-my">
+  <div class="my-profile-card">
+    <div class="my-avatar">🥕</div>
+    <div class="my-nick">당근유저_마포</div>
+    <div class="my-sub">서울 마포구 합정동 · 가입 2024.03</div>
+    <div class="my-stats">
+      <div class="my-stat"><div class="my-stat-num">12</div><div class="my-stat-label">총 거래</div></div>
+      <div class="my-stat"><div class="my-stat-num">3</div><div class="my-stat-label">방장 경험</div></div>
+      <div class="my-stat"><div class="my-stat-num">100%</div><div class="my-stat-label">후기 완료율</div></div>
+      <div class="my-stat"><div class="my-stat-num">0</div><div class="my-stat-label">노쇼 횟수</div></div>
+    </div>
+  </div>
+
+  <div class="my-score-section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-weight:700;font-size:15px">🏆 신뢰 점수</div>
+      <div style="font-family:'Gmarket Sans',sans-serif;font-size:28px;font-weight:700;color:var(--primary)">87점</div>
+    </div>
+    <div class="score-progress-bg"><div class="score-progress-fill"></div></div>
+    <div class="score-milestones" style="margin-bottom:14px">
+      <span>0</span>
+      <span style="color:var(--primary);font-weight:700">✓ 방장 가능 (80)</span>
+      <span style="font-weight:700;color:#a855f7">VIP (95)</span>
+      <span>100</span>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px">최근 점수 변동</div>
+    <div class="score-hist-item"><span>🥩 LA갈비 거래 완료 + 후기</span><span class="score-up">+3점</span></div>
+    <div class="score-hist-item"><span>🍼 기저귀 거래 완료 + 후기</span><span class="score-up">+3점</span></div>
+    <div class="score-hist-item"><span>🧴 세제 방장 완료</span><span class="score-up">+5점</span></div>
+    <div class="score-hist-item"><span>⚠️ 1회 지각 (참여자 신고)</span><span class="score-down">-2점</span></div>
+  </div>
+
+  <div class="menu-section">
+    <div class="menu-section-title">내 계정</div>
+    <div class="menu-item" onclick="showToast('프로필 수정 페이지')"><span class="menu-icon">✏️</span><span class="menu-label">프로필 수정</span><span style="color:var(--text-muted)">›</span></div>
+    <div class="menu-item" onclick="showToast('✅ 동네 인증 완료 상태')"><span class="menu-icon">📍</span><span class="menu-label">동네 인증</span><span class="menu-badge" style="background:var(--green)">완료</span></div>
+    <div class="menu-item" onclick="showToast('알림 설정')"><span class="menu-icon">🔔</span><span class="menu-label">알림 설정</span><span style="color:var(--text-muted)">›</span></div>
+  </div>
+
+  <div class="menu-section">
+    <div class="menu-section-title">고객지원</div>
+    <div class="menu-item" onclick="showToast('공지사항')"><span class="menu-icon">📢</span><span class="menu-label">공지사항</span><span class="menu-badge" style="background:var(--blue)">2</span></div>
+    <div class="menu-item" onclick="showToast('이용 가이드')"><span class="menu-icon">📖</span><span class="menu-label">이용 가이드</span><span style="color:var(--text-muted)">›</span></div>
+    <div class="menu-item" onclick="showToast('신고/이의제기')"><span class="menu-icon">🚨</span><span class="menu-label">신고 / 이의제기</span><span style="color:var(--text-muted)">›</span></div>
+    <div class="menu-item" onclick="showToast('1:1 고객센터')"><span class="menu-icon">💬</span><span class="menu-label">고객센터</span><span style="color:var(--text-muted)">›</span></div>
+  </div>
+
+  <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">
+    반반마켓 v0.1 MVP · ⓒ 2025<br>
+    <span style="color:var(--primary);cursor:pointer;font-weight:700" onclick="showToast('로그아웃 되었습니다')">로그아웃</span>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fabBtn" onclick="openCreate()">＋ 방 만들기</button>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="nav-item active" id="nav-home" onclick="goNav('home')"><div class="nav-icon">🏠</div>홈</button>
+    <button class="nav-item" id="nav-search" onclick="goNav('search')"><div class="nav-icon">🔍</div>탐색</button>
+    <button class="nav-item" id="nav-trade" onclick="goNav('trade')"><div class="nav-icon">📋</div>내 거래</button>
+    <button class="nav-item" id="nav-my" onclick="goNav('my')"><div class="nav-icon">👤</div>마이</button>
+  </div>
+</nav>
+
+<!-- CREATE MODAL -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">방 만들기</div>
+    <div class="form-group">
+      <label class="form-label">카테고리</label>
+      <select class="form-select" id="newCat"><option value="식품">🥩 식품</option><option value="생활">🧴 생활용품</option><option value="육아">🍼 육아</option><option value="반려">🐾 반려동물</option><option value="기타">📦 기타</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">상품명</label>
+      <input class="form-input" type="text" id="newName" placeholder="예) 코스트코 소고기 1+등급 LA갈비 5kg">
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">총 수량</label><input class="form-input" type="text" id="newTotal" placeholder="5kg"></div>
+      <div class="form-group"><label class="form-label">총 가격 (원)</label><input class="form-input" type="number" id="newPrice" placeholder="65000"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">마감 시간</label>
+      <input class="form-input" type="datetime-local" id="newDeadline">
+    </div>
+    <div class="form-group">
+      <label class="form-label">📍 거래 장소 (지정 장소만 선택 가능)</label>
+      <div class="place-grid">
+        <div class="place-opt" onclick="selectPlace(this)"><span style="font-size:18px">🏪</span>홈플러스 합정점 앞</div>
+        <div class="place-opt" onclick="selectPlace(this)"><span style="font-size:18px">🚇</span>합정역 2번 출구</div>
+        <div class="place-opt" onclick="selectPlace(this)"><span style="font-size:18px">🏛</span>합정동 주민센터</div>
+        <div class="place-opt" onclick="selectPlace(this)"><span style="font-size:18px">🌳</span>합정 어울마당 공원</div>
+      </div>
+    </div>
+    <button class="submit-btn" onclick="submitRoom()">방 생성하기</button>
+    <button class="cancel-btn" onclick="closeCreate()">취소</button>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal" id="detailContent"></div>
+</div>
+
+<!-- REVIEW MODAL -->
+<div class="modal-overlay" id="reviewModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⭐ 후기 작성</div>
+    <div style="background:var(--bg);border-radius:12px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:28px">🥩</span>
+      <div><div style="font-size:13px;font-weight:700">코스트코 LA갈비</div><div style="font-size:12px;color:var(--text-muted)">방장: 서울살이_민준 (92점)</div></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">거래 만족도</label>
+      <div class="star-row">
+        <button class="star-btn" onclick="setStar(1)">⭐</button>
+        <button class="star-btn" onclick="setStar(2)">⭐</button>
+        <button class="star-btn" onclick="setStar(3)">⭐</button>
+        <button class="star-btn" onclick="setStar(4)">⭐</button>
+        <button class="star-btn" onclick="setStar(5)">⭐</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">한 줄 후기</label>
+      <input class="form-input" id="reviewText" type="text" placeholder="예) 시간도 잘 지키고 수량도 딱 맞았어요!">
+    </div>
+    <button class="submit-btn" onclick="submitReview()">후기 제출하기</button>
+    <button class="cancel-btn" onclick="closeReviewModal()">취소</button>
+  </div>
+</div>
+
+<!-- 채팅 모달 -->
+<div class="modal-overlay" id="chatModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="chat-header">
+      <span id="chatEmoji" style="font-size:28px"></span>
+      <div class="chat-room-info">
+        <div class="chat-room-name" id="chatRoomName"></div>
+        <div class="chat-room-sub" id="chatRoomSub"></div>
+      </div>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chatInput" type="text" placeholder="메시지 입력..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="chat-send-btn" onclick="sendChat()"><div class="toast" id="toast"></div>#10148;</button>
+    </div>
+    <button class="cancel-btn" onclick="closeChatModal()">닫기</button>
+  </div>
+</div>
+
+<!-- 참여자 목록 모달 -->
+<div class="modal-overlay" id="participantModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="participantTitle">참여자 목록</div>
+    <div id="participantList"></div>
+    <button class="cancel-btn" onclick="closeParticipantModal()">닫기</button>
+  </div>
+</div>
+
+<!-- 수령 체크 모달 -->
+<div class="modal-overlay" id="checkModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">수령 체크</div>
+    <div class="chat-header" style="margin-bottom:12px">
+      <span id="checkEmoji" style="font-size:28px"></span>
+      <div><div class="chat-room-name" id="checkRoomName"></div><div class="chat-room-sub" id="checkRoomSub"></div></div>
+    </div>
+    <div class="check-summary"><b id="checkProgress">0/0</b>명 수령 완료</div>
+    <div id="checkList"></div>
+    <button class="submit-btn" id="checkCompleteBtn" onclick="completeCheck()" style="margin-top:12px">완료 처리</button>
+    <button class="cancel-btn" onclick="closeCheckModal()">닫기</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const catEmojis = { 식품:'🥩', 생활:'🧴', 육아:'🍼', 반려:'🐾', 기타:'📦' };
+
+const rooms = [
+  { id:1, cat:'식품', emoji:'🥩', name:'코스트코 LA갈비 1+등급 (5kg 세트)', host:'서울살이_민준', hostScore:92, total:5, filled:4.5, unit:'kg', price:65000, priceUnit:'kg당 13,000원', deadline:'오늘 오후 6시', place:'홈플러스 합정점 앞', joined:false, dist:'150m', participants:[{nick:'하늘빛여행자',score:95},{nick:'마포집밥러',score:88},{nick:'두아이엄마',score:76},{nick:'요리하는남자',score:82}] },
+  { id:2, cat:'육아', emoji:'🍼', name:'하기스 울트라 기저귀 박스 (1단계 216매)', host:'슈퍼맘_은정', hostScore:98, total:4, filled:2, unit:'박스', price:28000, priceUnit:'박스당 28,000원', deadline:'오늘 오후 8시', place:'합정역 2번 출구', joined:true, dist:'280m', participants:[{nick:'초보아빠_준서',score:71},{nick:'육아스타그램',score:89}] },
+  { id:3, cat:'반려', emoji:'🐾', name:'로얄캐닌 어덜트 사료 (15kg + 덤)', host:'강아지바보_혜진', hostScore:85, total:3, filled:3, unit:'포대', price:42000, priceUnit:'포대당 42,000원', deadline:'마감됨', place:'합정 어울마당 공원', joined:false, dist:'500m', participants:[{nick:'멍멍이사랑',score:91},{nick:'냥이아빠',score:78},{nick:'털뭉치가족',score:83}] },
+  { id:4, cat:'생활', emoji:'🧴', name:'다우니 퍼플 섬유유연제 5L 대용량 2개', host:'살림왕_소연', hostScore:91, total:2, filled:0.5, unit:'개', price:18000, priceUnit:'개당 18,000원', deadline:'내일 오전 11시', place:'합정동 주민센터', joined:false, dist:'420m', participants:[{nick:'깔끔한하루',score:67}] }
+];
+
+const myTrades = {
+  join: [
+    { id:2, emoji:'🍼', name:'하기스 울트라 기저귀 (1단계 216매)', sub:'오늘 오후 8시 · 합정역 2번 출구', status:'active', statusText:'참여 대기중', needReview:false }
+  ],
+  host: [
+    { id:5, emoji:'🧴', name:'피죤 섬유유연제 5L (3개 분배)', sub:'어제 완료 · 합정동 주민센터', status:'wait', statusText:'수령 확인 필요' }
+  ],
+  done: [
+    { id:6, emoji:'🥩', name:'코스트코 LA갈비 (5kg)', sub:'2024.12.15 · 홈플러스 합정점', stars:5, review:'시간도 잘 지키고 수량도 딱 맞았어요! 다음에 또 참여할게요.' },
+    { id:7, emoji:'🐾', name:'로얄캐닌 어덜트 사료 15kg', sub:'2024.12.10 · 합정 어울마당 공원', stars:4, review:'빠르고 친절했어요 👍' }
+  ]
+};
+
+let catFilter = '전체';
+let tradeTab = 'join';
+let selectedStar = 0;
+let reviewPending = true;
+
+// NAV
+function goNav(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  document.getElementById('nav-' + tab).classList.add('active');
+  document.getElementById('fabBtn').classList.toggle('hidden', tab === 'trade' || tab === 'my');
+  if(tab === 'search') renderSearch('');
+  if(tab === 'trade') { tradeTab = 'join'; switchTradeTab('join'); }
+  window.scrollTo(0,0);
+}
+
+// HOME
+function filterCat(btn, cat) {
+  document.querySelectorAll('.cat-btn').forEach(x => x.classList.remove('active'));
+  btn.classList.add('active');
+  catFilter = cat;
+  renderRooms();
+}
+
+function renderRooms() {
+  const list = document.getElementById('roomList');
+  const filtered = catFilter === '전체' ? rooms : rooms.filter(r => r.cat === catFilter);
+  if(!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">해당 카테고리 방이 없어요</div><div class="empty-sub">다른 카테고리를 선택하거나 방을 직접 만들어보세요!</div></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(roomHTML).join('');
+}
+
+function roomHTML(r) {
+  const pct = Math.min(100, (r.filled/r.total)*100);
+  const isFull = r.filled >= r.total;
+  const isDone = r.deadline === '마감됨';
+  return `<div class="room-card" onclick="openDetail(${r.id})">
+    <div class="room-top">
+      <div class="room-img">${r.emoji}</div>
+      <div class="room-info">
+        <div class="room-cat">${r.cat}</div>
+        <div class="room-name">${r.name}</div>
+        <div class="room-host">방장: ${r.host} <span class="host-score">${r.hostScore}점</span></div>
+        <div class="room-price">₩${r.price.toLocaleString()} <span>${r.priceUnit}</span></div>
+      </div>
+    </div>
+    <div class="progress-area">
+      <div class="progress-top"><span class="prog-label">모집 현황</span><span class="prog-count ${isFull?'full':''}">${r.filled}/${r.total}${r.unit}${isFull?' ✅ 모집완료':''}</span></div>
+      <div class="progress-bg"><div class="progress-fill ${isFull?'full':''}" style="width:${pct}%"></div></div>
+    </div>
+    <div class="room-bottom">
+      <div class="room-tags">
+        <span class="tag tag-loc">📍 ${r.place}</span>
+        <span class="tag tag-time">⏰ ${r.deadline}</span>
+      </div>
+      ${isDone||isFull
+        ? `<button class="join-btn full-btn" onclick="event.stopPropagation()">마감</button>`
+        : r.joined
+        ? `<button class="join-btn joined" onclick="event.stopPropagation();toggleJoin(${r.id})">참여중 ✓</button>`
+        : `<button class="join-btn" onclick="event.stopPropagation();toggleJoin(${r.id})">참여하기</button>`}
+    </div>
+  </div>`;
+}
+
+function toggleJoin(id) {
+  const r = rooms.find(x=>x.id===id);
+  if(r.deadline==='마감됨'||r.filled>=r.total) return;
+  r.joined = !r.joined;
+  if(r.joined) {
+    r.filled = Math.min(r.total, r.filled+0.5);
+    myTrades.join.push({ id:r.id, emoji:r.emoji, name:r.name, sub:r.deadline+' · '+r.place, status:'active', statusText:'참여 대기중' });
+    showToast('✅ 참여 신청 완료! 약속 시간에 꼭 나타나주세요.');
+  } else {
+    r.filled = Math.max(0, r.filled-0.5);
+    myTrades.join = myTrades.join.filter(x=>x.id!==r.id);
+    showToast('참여를 취소했습니다.');
+  }
+  updateNotice();
+  renderRooms();
+}
+
+function updateNotice() {
+  const cnt = rooms.filter(x=>x.filled<x.total&&x.deadline!=='마감됨').length;
+  document.getElementById('locationNotice').textContent = `지금 ${cnt}개 진행중`;
+}
+
+// DETAIL
+function openDetail(id) {
+  const r = rooms.find(x=>x.id===id);
+  const pct = Math.min(100,(r.filled/r.total)*100);
+  const isFull = r.filled>=r.total||r.deadline==='마감됨';
+  document.getElementById('detailContent').innerHTML = `
+    <div class="modal-handle"></div>
+    <div class="detail-hero">${r.emoji}</div>
+    <div class="detail-title">${r.name}</div>
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="color:var(--text-sub)">모집 현황</span><span style="font-weight:700;color:${r.filled>=r.total?'var(--green)':'var(--primary)'}">${r.filled}/${r.total}${r.unit}</span></div>
+      <div class="progress-bg"><div class="progress-fill ${r.filled>=r.total?'full':''}" style="width:${pct}%"></div></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-sec-title">거래 정보</div>
+      <div class="detail-info-row"><span class="detail-info-label">방장</span><span class="detail-info-val">${r.host} (${r.hostScore}점)</span></div>
+      <div class="detail-info-row"><span class="detail-info-label">참여 가격</span><span class="detail-info-val" style="color:var(--primary)">₩${r.price.toLocaleString()}</span></div>
+      <div class="detail-info-row"><span class="detail-info-label">거래 장소</span><span class="detail-info-val">📍 ${r.place}</span></div>
+      <div class="detail-info-row"><span class="detail-info-label">마감</span><span class="detail-info-val">⏰ ${r.deadline}</span></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-sec-title">참여자 (${r.participants.length}명)</div>
+      <div class="participants-list">${r.participants.map(p=>`<div class="participant-chip">${p.nick} <span class="p-score">${p.score}점</span></div>`).join('')}</div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-sec-title">이용 규칙</div>
+      <div class="rule-list">
+        <div class="rule-item"><span>✅</span>거래 완료 후 후기 작성 필수. 미작성 시 이용 제한.</div>
+        <div class="rule-item"><span>⚠️</span>노쇼 시 신뢰 점수 크게 하락, 재참여 제한될 수 있음.</div>
+        <div class="rule-item"><span>📍</span>지정 장소 외 개인 장소 거래 불가.</div>
+      </div>
+    </div>
+    ${!isFull
+      ? `<button class="submit-btn" onclick="toggleJoin(${r.id});closeDetail()">${r.joined?'참여 취소하기':'이 방에 참여하기'}</button>`
+      : `<button class="submit-btn" style="background:var(--text-muted);cursor:default">모집이 마감되었습니다</button>`}
+    <button class="cancel-btn" onclick="closeDetail()">닫기</button>`;
+  document.getElementById('detailModal').classList.add('open');
+}
+function closeDetail() { document.getElementById('detailModal').classList.remove('open'); }
+document.getElementById('detailModal').addEventListener('click',e=>{if(e.target===document.getElementById('detailModal'))closeDetail();});
+
+// SEARCH
+function renderSearch(q) {
+  const filtered = q ? rooms.filter(r=>r.name.includes(q)||r.cat.includes(q)) : rooms;
+  document.getElementById('nearbyCount').textContent = filtered.length+'개';
+  if(!filtered.length) {
+    document.getElementById('searchResults').innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">"${q}" 검색 결과 없음</div><div class="empty-sub">다른 키워드로 검색해보세요</div></div>`;
+    return;
+  }
+  document.getElementById('searchResults').innerHTML = filtered.map(r=>`
+    <div class="nearby-room" onclick="openDetail(${r.id})">
+      <div class="nearby-emoji">${r.emoji}</div>
+      <div style="flex:1">
+        <div class="nearby-name">${r.name}</div>
+        <div class="nearby-sub">⏰ ${r.deadline} · 방장 ${r.hostScore}점</div>
+        <div class="nearby-sub">📍 ${r.place}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="nearby-dist">${r.dist}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${r.filled}/${r.total}${r.unit}</div>
+      </div>
+    </div>`).join('');
+}
+function doSearch(v) { renderSearch(v); }
+function searchKw(kw) { document.getElementById('searchInput').value=kw; renderSearch(kw); }
+
+// TRADE
+function switchTradeTab(tab) {
+  tradeTab = tab;
+  document.querySelectorAll('.trade-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('ttab-'+tab).classList.add('active');
+  renderTrade();
+}
+
+function renderTrade() {
+  const c = document.getElementById('tradeContent');
+  const rp = document.getElementById('reviewPrompt');
+  const data = myTrades[tradeTab];
+
+  rp.style.display = (tradeTab==='join' && reviewPending && myTrades.done.length>0) ? 'flex' : 'none';
+
+  if(!data.length) {
+    const em = {join:{i:'📋',t:'참여중인 거래가 없어요',s:'홈에서 공동구매에 참여해보세요!'},host:{i:'🏠',t:'개설한 방이 없어요',s:'방을 만들어 이웃을 모집해보세요!'},done:{i:'🎉',t:'완료된 거래가 없어요',s:'첫 거래를 시작해보세요!'}};
+    const e = em[tradeTab];
+    c.innerHTML=`<div class="empty-state"><div class="empty-icon">${e.i}</div><div class="empty-text">${e.t}</div><div class="empty-sub">${e.s}</div></div>`;
+    return;
+  }
+
+  if(tradeTab==='done') {
+    c.innerHTML = data.map(t=>`
+      <div class="history-card">
+        <div class="history-item">
+          <div class="trade-emoji">${t.emoji}</div>
+          <div class="history-info">
+            <div class="history-name">${t.name}</div>
+            <div class="history-date">${t.sub}</div>
+            <div class="history-stars">${'⭐'.repeat(t.stars)}</div>
+            <div class="history-review">"${t.review}"</div>
+          </div>
+        </div>
+      </div>`).join('');
+    return;
+  }
+
+  c.innerHTML = data.map(t=>`
+    <div class="trade-card">
+      <div class="trade-top">
+        <div class="trade-emoji">${t.emoji}</div>
+        <div class="trade-info"><div class="trade-name">${t.name}</div><div class="trade-sub">${t.sub}</div></div>
+        <span class="status-badge status-${t.status}">${t.statusText}</span>
+      </div>
+      <div class="trade-actions">
+        ${tradeTab==='join'
+          ? `<button class="trade-btn trade-btn-secondary" onclick="openChatModal(${t.id})">💬 채팅</button>
+             <button class="trade-btn trade-btn-primary" onclick="openDetail(${t.id})">상세 보기</button>`
+          : `<button class="trade-btn trade-btn-secondary" onclick="openParticipantModal(${t.id})">👥 참여자</button>
+             <button class="trade-btn trade-btn-primary" onclick="openCheckModal(${t.id})">✅ 수령 체크</button>`}
+      </div>
+    </div>`).join('');
+}
+
+// CREATE
+function openCreate() { document.getElementById('createModal').classList.add('open'); }
+function closeCreate() { document.getElementById('createModal').classList.remove('open'); }
+document.getElementById('createModal').addEventListener('click',e=>{if(e.target===document.getElementById('createModal'))closeCreate();});
+
+function selectPlace(el) {
+  document.querySelectorAll('.place-opt').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function submitRoom() {
+  const name = document.getElementById('newName').value.trim();
+  const cat = document.getElementById('newCat').value;
+  const total = document.getElementById('newTotal').value.trim();
+  const price = parseInt(document.getElementById('newPrice').value)||0;
+  const sel = document.querySelector('.place-opt.selected');
+  if(!name) { showToast('⚠️ 상품명을 입력해주세요'); return; }
+  if(!sel) { showToast('⚠️ 거래 장소를 선택해주세요'); return; }
+  const place = sel.textContent.trim();
+  const newR = { id:Date.now(), cat, emoji:catEmojis[cat]||'📦', name, host:'당근유저_마포', hostScore:87, total:parseFloat(total)||3, filled:0, unit:'개', price, priceUnit:'참여자 협의', deadline:'오늘 오후 9시', place, joined:false, dist:'내 방', participants:[] };
+  rooms.unshift(newR);
+  myTrades.host.unshift({ id:newR.id, emoji:newR.emoji, name, sub:'오늘 오후 9시 · '+place, status:'active', statusText:'모집중' });
+  closeCreate();
+  renderRooms();
+  updateNotice();
+  showToast('🎉 방이 생성됐어요! 이웃들에게 알림을 보냈어요.');
+  document.getElementById('newName').value='';
+  document.getElementById('newTotal').value='';
+  document.getElementById('newPrice').value='';
+  document.querySelectorAll('.place-opt').forEach(x=>x.classList.remove('selected'));
+}
+
+// REVIEW
+function openReviewModal() { document.getElementById('reviewModal').classList.add('open'); selectedStar=0; updateStars(); }
+function closeReviewModal() { document.getElementById('reviewModal').classList.remove('open'); }
+document.getElementById('reviewModal').addEventListener('click',e=>{if(e.target===document.getElementById('reviewModal'))closeReviewModal();});
+
+function setStar(n) { selectedStar=n; updateStars(); }
+function updateStars() { document.querySelectorAll('.star-btn').forEach((b,i)=>b.classList.toggle('on',i<selectedStar)); }
+
+function submitReview() {
+  if(!selectedStar) { showToast('⭐ 별점을 선택해주세요'); return; }
+  const txt = document.getElementById('reviewText').value || '좋은 거래였어요!';
+  closeReviewModal();
+  reviewPending = false;
+  myTrades.done.unshift({ id:Date.now(), emoji:'🥩', name:'코스트코 LA갈비 5kg', sub:'오늘 · 홈플러스 합정점 앞', stars:selectedStar, review:txt });
+  document.getElementById('reviewPrompt').style.display='none';
+  showToast('✅ 후기 제출 완료! 신뢰 점수 +3점이 올랐어요');
+  if(tradeTab==='join') renderTrade();
+}
+
+// ===== 채팅 =====
+const chatData = {
+  2: {
+    roomId:2, msgs:[
+      { nick:'슈퍼맘_은정', avatar:'👩', me:false, text:'안녕하세요! 방장입니다. 오늘 오후 8시에 합정역 2번 출구에서 뵙겠습니다 😊', time:'오후 2:14' },
+      { nick:'나(당근유저_마포)', avatar:'🥕', me:true, text:'네! 기저귀 1박스 신청했어요. 현금으로 드리면 될까요?', time:'오후 2:16' },
+      { nick:'슈퍼맘_은정', avatar:'👩', me:false, text:'네 현금 또는 계좌이체 모두 가능해요! 28,000원입니다 👍', time:'오후 2:17' },
+      { nick:'초보아빠_준서', avatar:'👨', me:false, text:'저도 1박스인데 현금으로 준비할게요!', time:'오후 3:01' },
+    ]
+  },
+  5: {
+    roomId:5, msgs:[
+      { nick:'나(당근유저_마포)', avatar:'🥕', me:true, text:'방 생성했습니다! 모집 마감은 오늘 오후 9시입니다.', time:'오후 1:00' },
+      { nick:'깔끔한하루', avatar:'🧹', me:false, text:'참여했어요! 18,000원 준비할게요', time:'오후 1:30' },
+    ]
+  }
+};
+
+let currentChatId = null;
+
+function openChatModal(id) {
+  currentChatId = id;
+  const r = rooms.find(x=>x.id===id) || { emoji:'🛒', name:'공동구매 채팅방', place:'합정역' };
+  const t = myTrades.join.find(x=>x.id===id) || myTrades.host.find(x=>x.id===id) || {};
+  document.getElementById('chatEmoji').textContent = r.emoji || t.emoji || '💬';
+  document.getElementById('chatRoomName').textContent = r.name || t.name || '';
+  document.getElementById('chatRoomSub').textContent = r.place || '';
+  if(!chatData[id]) chatData[id] = { roomId:id, msgs:[] };
+  renderChatMessages();
+  document.getElementById('chatModal').classList.add('open');
+  setTimeout(()=>{ const cm=document.getElementById('chatMessages'); cm.scrollTop=cm.scrollHeight; }, 100);
+}
+
+function closeChatModal() { document.getElementById('chatModal').classList.remove('open'); }
+document.getElementById('chatModal').addEventListener('click',e=>{ if(e.target===document.getElementById('chatModal')) closeChatModal(); });
+
+function renderChatMessages() {
+  const msgs = chatData[currentChatId]?.msgs || [];
+  document.getElementById('chatMessages').innerHTML = msgs.map(m=>`
+    <div class="chat-msg ${m.me?'me':''}">
+      <div class="chat-avatar">${m.avatar}</div>
+      <div class="chat-bubble-wrap">
+        ${!m.me?`<div class="chat-nick">${m.nick}</div>`:''}
+        <div class="chat-bubble">${m.text}</div>
+        <div class="chat-time">${m.time}</div>
+      </div>
+    </div>`).join('');
+  const cm = document.getElementById('chatMessages');
+  cm.scrollTop = cm.scrollHeight;
+}
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const now = new Date();
+  const h = now.getHours(); const m = String(now.getMinutes()).padStart(2,'0');
+  const timeStr = `${h>=12?'오후':'오전'} ${h>12?h-12:h}:${m}`;
+  if(!chatData[currentChatId]) chatData[currentChatId] = { roomId:currentChatId, msgs:[] };
+  chatData[currentChatId].msgs.push({ nick:'나(당근유저_마포)', avatar:'🥕', me:true, text, time:timeStr });
+  input.value = '';
+  renderChatMessages();
+  // 자동 답장 (1.2초 후)
+  const replies = ['알겠습니다! 😊','네, 확인했어요!','약속 시간에 뵐게요 👋','감사합니다!'];
+  setTimeout(()=>{
+    chatData[currentChatId].msgs.push({ nick:'슈퍼맘_은정', avatar:'👩', me:false, text:replies[Math.floor(Math.random()*replies.length)], time:timeStr });
+    renderChatMessages();
+  }, 1200);
+}
+
+// ===== 참여자 목록 =====
+const participantCheckState = {};
+
+function openParticipantModal(id) {
+  const r = rooms.find(x=>x.id===id);
+  const t = myTrades.host.find(x=>x.id===id);
+  const trade = t || {};
+  const participants = r?.participants || [
+    {nick:'깔끔한하루', score:67, qty:'1개', avatar:'🧹'},
+    {nick:'마포주부왕', score:81, qty:'1개', avatar:'🏠'},
+  ];
+  document.getElementById('participantTitle').textContent = `👥 참여자 목록 (${participants.length}명)`;
+  document.getElementById('participantList').innerHTML = `
+    <div style="background:var(--bg);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;display:flex;justify-content:space-between">
+      <span style="color:var(--text-sub)">상품명</span>
+      <span style="font-weight:700">${r?.name || trade.name || '공동구매'}</span>
+    </div>
+    <div style="background:var(--bg);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:13px;display:flex;justify-content:space-between">
+      <span style="color:var(--text-sub)">거래 장소</span>
+      <span style="font-weight:700">📍 ${r?.place || '합정동 주민센터'}</span>
+    </div>
+    ${participants.map((p,i)=>`
+    <div class="participant-row">
+      <div class="participant-avatar">${p.avatar||'👤'}</div>
+      <div class="participant-info">
+        <div class="participant-nick">${p.nick}</div>
+        <div class="participant-detail">신청 수량: ${p.qty||'1개'} · 신뢰점수 ${p.score}점</div>
+      </div>
+      <span class="p-score-big">${p.score}점</span>
+    </div>`).join('')}
+    <div style="margin-top:16px;padding:12px;background:var(--primary-pale);border-radius:10px;font-size:13px;color:var(--primary);font-weight:500">
+      💡 참여자에게 채팅으로 거래 장소 및 시간을 안내해주세요.
+    </div>`;
+  document.getElementById('participantModal').classList.add('open');
+}
+
+function closeParticipantModal() { document.getElementById('participantModal').classList.remove('open'); }
+document.getElementById('participantModal').addEventListener('click',e=>{ if(e.target===document.getElementById('participantModal')) closeParticipantModal(); });
+
+// ===== 수령 체크 =====
+const checkStates = {};
+
+function openCheckModal(id) {
+  const r = rooms.find(x=>x.id===id);
+  const t = myTrades.host.find(x=>x.id===id);
+  const trade = t || {};
+  const participants = r?.participants?.length ? r.participants : [
+    {nick:'깔끔한하루', score:67, qty:'1개', avatar:'🧹'},
+    {nick:'마포주부왕', score:81, qty:'1개', avatar:'🏠'},
+  ];
+  if(!checkStates[id]) checkStates[id] = participants.map((_,i)=>false);
+
+  document.getElementById('checkEmoji').textContent = r?.emoji || trade.emoji || '📦';
+  document.getElementById('checkRoomName').textContent = r?.name || trade.name || '공동구매';
+  document.getElementById('checkRoomSub').textContent = `📍 ${r?.place || '합정동 주민센터'}`;
+
+  renderCheckList(id, participants);
+  document.getElementById('checkModal').classList.add('open');
+}
+
+function renderCheckList(id, participants) {
+  const states = checkStates[id];
+  const checkedCount = states.filter(Boolean).length;
+  const total = states.length;
+  document.getElementById('checkProgress').textContent = `${checkedCount}/${total}`;
+
+  const btn = document.getElementById('checkCompleteBtn');
+  if(checkedCount === total) {
+    btn.style.background='var(--green)'; btn.style.cursor='pointer';
+  } else {
+    btn.style.background='var(--text-muted)'; btn.style.cursor='default';
+  }
+
+  document.getElementById('checkList').innerHTML = participants.map((p,i)=>`
+    <div class="check-row ${states[i]?'checked':''}" id="checkRow${i}" onclick="toggleCheck('${id}',${i})">
+      <div class="check-box">${states[i]?'✓':''}</div>
+      <div class="check-info">
+        <div class="check-name">${p.avatar||'👤'} ${p.nick}</div>
+        <div class="check-qty">신청 수량: ${p.qty||'1개'} · 신뢰점수 ${p.score}점</div>
+      </div>
+      <span class="check-status ${states[i]?'check-done':'check-wait'}">${states[i]?'수령 완료':'미수령'}</span>
+    </div>`).join('');
+}
+
+function toggleCheck(id, idx) {
+  const r = rooms.find(x=>x.id==id);
+  const participants = r?.participants?.length ? r.participants : [
+    {nick:'깔끔한하루', score:67, qty:'1개', avatar:'🧹'},
+    {nick:'마포주부왕', score:81, qty:'1개', avatar:'🏠'},
+  ];
+  checkStates[id][idx] = !checkStates[id][idx];
+  renderCheckList(id, participants);
+}
+
+function completeCheck() {
+  // 현재 열린 체크모달의 id 찾기
+  const id = Object.keys(checkStates).find(k => checkStates[k].every(Boolean));
+  if(!id) { showToast('⚠️ 아직 수령하지 않은 참여자가 있어요'); return; }
+  closeCheckModal();
+  // 방장 탭에서 완료 처리
+  const idx = myTrades.host.findIndex(x=>x.id==id);
+  if(idx>-1) {
+    const t = myTrades.host[idx];
+    myTrades.done.unshift({ id:t.id, emoji:t.emoji, name:t.name, sub:'오늘 완료 · '+t.sub.split('·')[1], stars:5, review:'방장으로서 거래 완료! 참여자 모두 수령 확인됨.' });
+    myTrades.host.splice(idx,1);
+  }
+  showToast('🎉 거래 완료! 참여자들에게 후기 요청을 보냈어요.');
+  renderTrade();
+}
+
+function closeCheckModal() { document.getElementById('checkModal').classList.remove('open'); }
+document.getElementById('checkModal').addEventListener('click',e=>{ if(e.target===document.getElementById('checkModal')) closeCheckModal(); });
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// INIT
+renderRooms();
+renderSearch('');
+</script>
+</body>
+</html>
