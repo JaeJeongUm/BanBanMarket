@@ -397,7 +397,7 @@ function App() {
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 12, opacity: 0.85 }}>내 신뢰 점수 · 탭해서 자세히 보기</div>
             <div style={{ fontSize: 16, fontWeight: 700, margin: "4px 0" }}>{currentUser?.nickname || "게스트"} 🥕</div>
-            <div className="score-bar-bg"><div className="score-bar-fill" /></div>
+            <div className="score-bar-bg"><div className="score-bar-fill" style={{ width: `${Math.min(100, myProfile?.score ?? currentUser?.score ?? 50)}%` }} /></div>
             <div className="score-bar-text"><span>방장 기준 80점</span><span>{myProfile?.score ?? currentUser?.score ?? 50}/100</span></div>
           </div>
           <div style={{ marginLeft: 16, textAlign: "center" }}>

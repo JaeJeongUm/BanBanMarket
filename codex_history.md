@@ -261,3 +261,77 @@
 ### 현재 상태
 - 로컬 커밋은 완료.
 - GitHub 인증(HTTPS PAT 또는 SSH 키) 미설정으로 push 불가.
+
+## 2026-02-19 18:02:30 (KST) - History #13
+
+### 요청/지시
+- Git 전역 사용자 정보 설정 요청.
+
+### 수행 내용
+- `git config --global user.email "umjaejeong@gmail.com"`
+- `git config --global user.name "JaeJeongUm"`
+
+### 검증
+- `git config --global --get user.email` => `umjaejeong@gmail.com`
+- `git config --global --get user.name` => `JaeJeongUm`
+
+## 2026-02-19 18:04:30 (KST) - History #14
+
+### 요청/지시
+- 다른 컴퓨터에서 git으로 내려받아 바로 이어서 개발하는 방법 안내 요청.
+
+### 답변 요약
+- clone -> env 설정 -> backend 실행 -> frontend 실행 -> docker compose 옵션 순으로 진행.
+- GitHub 인증(HTTPS PAT 또는 SSH)과 Java17/Node 설치가 선행 필요.
+
+## 2026-02-20 13:45:00 (KST) - History #15
+
+### 요청/지시
+- Claude Code로 복귀. codex_history.md를 바탕으로 현재까지 상태를 분석 후 이어서 개발 진행 요청.
+
+### 분석 결과 (인수 시점 상태)
+- 백엔드: 컨트롤러/서비스/도메인/스케줄러/통합테스트 모두 구현 완료. `./mvnw test` 2개 테스트 통과.
+- 프론트엔드: React App.jsx(724줄), api.js(76줄), styles.css(256줄) 구현 완료. `npm run build` 성공.
+- 미비 사항: actuator 의존성 미포함, 스코어바 너비 하드코딩, docs/ 폴더 비어 있음, frontend/.env 없음.
+
+### 이번 단계 완료 작업
+
+1. 백엔드 pom.xml에 `spring-boot-starter-actuator` 의존성 추가
+   - 프론트엔드가 `/actuator/health`로 서버 상태 확인 → 의존성 없어서 500 에러 발생하던 문제 해결
+
+2. 프론트엔드 스코어바 동적 너비 수정 (`frontend/src/App.jsx`)
+   - `<div className="score-bar-fill" />` → `style={{ width: \`\${Math.min(100, score)}%\` }}` 추가
+   - 홈 화면 신뢰점수 카드가 실제 점수에 맞게 시각적으로 표시됨
+
+3. `docs/API_KEYS.md` 생성
+   - Kakao Maps JavaScript API 키 발급 방법
+   - Google AdSense Publisher ID 설정 방법
+   - JWT Secret 생성 명령어
+   - PostgreSQL 로컬 세팅 가이드
+   - 환경 변수 우선순위 요약 표
+
+4. `frontend/.env` 파일 생성 (로컬 개발용)
+   - `VITE_API_BASE_URL=` (비워도 Vite proxy가 처리)
+   - `VITE_KAKAO_MAP_KEY=` (선택, 지도 기능 시 입력)
+   - `VITE_ADSENSE_CLIENT=` (선택, 광고 수익화 시 입력)
+
+### 검증 결과
+- `./mvnw test`: Tests run: 2, Failures: 0 ✅
+- `npm run build`: ✅ 빌드 성공
+- 백엔드 실제 실행 후 API 테스트:
+  - `GET /actuator/health` → `{"status":"UP"}` ✅
+  - `GET /api/locations` → 5개 시드 장소 반환 ✅
+  - `POST /api/auth/register` → 토큰 + user(score:50) 반환 ✅
+  - `POST /api/rooms` (score 50) → "방 개설을 위해 점수 80점 이상이 필요합니다" ✅
+
+### 현재 상태
+- **백엔드**: 실행 가능, 모든 핵심 API 작동 확인
+- **프론트엔드**: 빌드 가능, API 연동 완료
+- **문서**: docs/API_KEYS.md, REQUIRED_KEYS.md, .env.example 완비
+- **남은 것**: 실제 도메인 연결 + 운영 서버 배포 (인프라 작업)
+
+### 다음 이어서 할 일 (우선순위 순)
+1. 실서비스 배포: VPS에 Docker Compose로 올리기 (docker-compose.yml 이미 준비됨)
+2. Kakao Maps 연동: 거래 장소 지도 표시 (`VITE_KAKAO_MAP_KEY` 입력 후 KakaoMap 컴포넌트 추가)
+3. 추가 장소 등록: `LocationDataInitializer`에 사용 지역 장소 추가
+4. GitHub push: PAT 또는 SSH 키 설정 후 `git push origin main`
