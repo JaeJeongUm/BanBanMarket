@@ -19,6 +19,9 @@ app:
     expiration-ms: 86400000
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+  event:
+    host-open-start-date: ${EVENT_HOST_OPEN_START_DATE:2026-02-20}
+    host-open-end-date: ${EVENT_HOST_OPEN_END_DATE:2026-05-20}
 
 management:
   endpoints:

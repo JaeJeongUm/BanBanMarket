@@ -50,6 +50,8 @@ cd backend && ./mvnw test
 
 ## 핵심 비즈니스 정책 (코드에 반드시 반영)
 - 신규 유저 score=50, **방 생성은 score>=80 필요** (`User.canCreateRoom()`)
+- 단, 이벤트 기간(`EVENT_HOST_OPEN_START_DATE`~`EVENT_HOST_OPEN_END_DATE`)에는
+  신규 가입자 score=80으로 시작해 즉시 방장 권한 부여
 - **미작성 후기(pendingReviewCount>0)** 있으면 방 생성·참여 차단
 - 거래 장소는 **지정 장소만** (LocationDataInitializer 5개 시드, 자유입력 불가)
 - 방 마감: 목표수량 달성 즉시 CLOSED / 마감시간 경과 시 스케줄러(1분)가 CLOSED
@@ -75,9 +77,13 @@ GET  /actuator/health
 ```
 
 ## 현재 개발 상태
-- **백엔드**: MVP 완성. 테스트 2/2 통과. 실행 확인.
-- **프론트엔드**: MVP 완성. 빌드 성공. API 연동 완료.
-- **남은 작업**: 실서버 배포 (docker-compose.yml 준비 완료, VPS 미확보)
+- **백엔드**: MVP 완성. 테스트(컨텍스트 로드 + 통합 플로우) 통과.
+- **이벤트 정책**: 2026-02-20 ~ 2026-05-20 가입자 score=80 부여(환경변수로 조정 가능).
+- **프론트엔드**: React 단일 SPA + API 연동 완료. `npm run build` 성공.
+- **지도(Kakao Maps)**: SDK 단일 로딩/hidden mount 회피/relayout 보정 적용 완료.
+- **배포 준비**: `docker-compose.yml`, `backend/Dockerfile`, `PREDEPLOY_CHECKLIST.md`, `docs/DEPLOY_RUNBOOK.md`, `scripts/deploy.sh` 준비 완료.
+- **CI**: `.github/workflows/ci.yml` 추가 완료(backend test + frontend build).
+- **남은 작업**: VPS 확보 후 실서버 반영(도메인/TLS/리버스프록시/모니터링 운영값 적용).
 
 ## 트리거 키워드
 사용자가 **"계속해"** 라고 말하면:

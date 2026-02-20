@@ -11,6 +11,7 @@ import com.banban.market.repository.UserRepository;
 import com.banban.market.security.CustomUserDetails;
 import com.banban.market.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,6 +19,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +31,12 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
+
+    @Value("${app.event.host-open-start-date}")
+    private String hostOpenStartDate;
+
+    @Value("${app.event.host-open-end-date}")
+    private String hostOpenEndDate;
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -41,6 +50,10 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setNickname(request.getNickname());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        if (isHostOpenEventPeriod()) {
+            // Event: 신규 가입자는 즉시 방장 권한을 갖도록 점수 80으로 시작
+            user.setScore(80);
+        }
         user = userRepository.save(user);
 
         CustomUserDetails userDetails = new CustomUserDetails(user);
@@ -60,5 +73,12 @@ public class AuthService {
         } catch (BadCredentialsException e) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
+    }
+
+    private boolean isHostOpenEventPeriod() {
+        LocalDate today = LocalDate.now();
+        LocalDate start = LocalDate.parse(hostOpenStartDate);
+        LocalDate end = LocalDate.parse(hostOpenEndDate);
+        return !today.isBefore(start) && !today.isAfter(end);
     }
 }

@@ -42,6 +42,21 @@ class ApiFlowIntegrationTest {
     private LocationRepository locationRepository;
 
     @Test
+    void registerDuringHostOpenEvent_startsWithScore80() throws Exception {
+        Map<String, Object> body = new HashMap<>();
+        body.put("email", "event-user@banban.test");
+        body.put("nickname", "eventUser");
+        body.put("password", "password123");
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.user.score").value(80));
+    }
+
+    @Test
     void fullFlow_register_create_join_complete_review_works() throws Exception {
         String hostToken = register("host@banban.test", "hoster", "password123");
         Long hostId = findUserByEmail("host@banban.test").getId();

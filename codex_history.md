@@ -371,3 +371,156 @@
 ### 다음 이어서 할 일
 1. `frontend/.env`에 `VITE_KAKAO_MAP_KEY=발급받은키` 입력 후 실제 지도 동작 확인
 2. 실서버 배포: VPS 확보 후 `.env` 채우고 `docker-compose up -d` 실행
+
+## 2026-02-20 14:55:26 (KST) - History #15
+
+### 요청/지시
+- `CLAUDE.md`와 `codex_history.md`를 읽고 이어서 개발 진행 요청.
+
+### 완료 작업
+1. 실서버 배포 직전 품질 강화를 위한 CI 구성 추가
+- `.github/workflows/ci.yml` 생성
+- 구성: `backend` 테스트(Java 17), `frontend` 빌드(Node 20) 자동 실행
+
+2. 운영 배포 인수인계 문서/스크립트 추가
+- `docs/DEPLOY_RUNBOOK.md` 생성 (초기 세팅, 배포, 롤백, 점검 절차)
+- `scripts/deploy.sh` 생성 (`git pull` -> `docker compose up -d --build` -> health check)
+
+3. 컨텍스트 문서 최신화
+- `CLAUDE.md`의 "현재 개발 상태" 섹션을 실제 상태에 맞춰 업데이트
+
+### 검증 결과
+- `cd backend && ./mvnw -q test` 통과
+- `cd frontend && npm run build` 통과
+
+### 현재 상태
+- 로컬 개발/테스트/빌드, CI 자동검증, 배포 런북/스크립트까지 준비 완료
+- 실서버 반영 전 단계로서 필요한 기본 자산은 갖춘 상태
+
+### 다음 할 일
+1. VPS 확보 후 `docs/DEPLOY_RUNBOOK.md` 절차대로 실제 배포 수행
+2. 도메인/TLS/리버스프록시(Nginx/Caddy) 설정
+3. 운영 모니터링(로그/알람/백업) 적용 및 점검
+
+## 2026-02-20 15:00:10 (KST) - History #16
+
+### 요청/지시
+- Kakao Map API 키 등록 후 테스트 중 발생한 문제 해결 요청.
+- 문제: (1) 지도 표출 이상/느림, (2) backend 실행 시 spring-boot:run exit code 1.
+
+### 분석 결과
+1. 지도 이슈 원인
+- Kakao SDK 로더가 컴포넌트마다 중복 로딩될 수 있는 구조.
+- 검색 페이지가 `display:none` 상태일 때 지도 초기화가 먼저 수행되어 렌더가 꼬일 수 있음.
+
+2. backend 에러 원인
+- 재현 로그 핵심: `java.net.SocketException: Operation not permitted` during Tomcat bind.
+- 애플리케이션 로직/DB 문제가 아니라 서버 포트 바인딩 실패 계열 문제.
+
+### 완료 작업
+1. 지도 안정화 코드 수정 (`frontend/src/App.jsx`)
+- Kakao SDK 로더를 Promise 기반 단일 로더로 변경(중복 script 삽입 방지).
+- `https://dapi.kakao.com/...` 명시 사용.
+- `KakaoMap`, `KakaoMapMulti` 초기화 시 dispose 처리 및 `map.relayout()` 보정 추가.
+- 검색 페이지 지도는 `page === "search"`일 때만 마운트되도록 변경.
+- 상세 모달 지도도 `detailOpen && detailRoom` 조건에서만 렌더되도록 변경.
+
+2. 트러블슈팅 문서 보강
+- `backend/LOCAL_TEST_GUIDE.md`
+  - spring-boot:run 실패 시 포트 충돌/바인딩 확인 및 8081 실행 방법 추가.
+- `frontend/README.md`
+  - Kakao 키 + Web 플랫폼 도메인 등록 필수 조건 명시.
+  - 지도 비정상 표출 시 체크 항목 추가.
+
+### 검증 결과
+- `cd frontend && npm run build` 통과
+- `cd backend && ./mvnw -q test` 통과
+
+### 현재 상태
+- 지도 렌더 불안정 이슈를 코드 레벨로 완화.
+- backend exit code 1은 포트 바인딩 계열 문제로 원인 명확화 및 실행 가이드 보강 완료.
+
+### 다음 할 일
+1. 사용자 로컬 환경에서 backend 실행 시 포트 충돌 여부(`lsof -i :8080`) 확인
+2. 필요 시 `--server.port=8081`로 실행 후 프론트 `VITE_API_BASE_URL` 반영
+3. Kakao Developers Web 플랫폼에 `http://localhost:5173` 등록 상태 최종 확인
+
+## 2026-02-20 15:05:10 (KST) - History #17
+
+### 요청/지시
+- backend 실행 실패 로그 재확인 요청.
+
+### 분석 결과
+- `spring-boot:run -e` 재실행 시 웹서버 바인딩 실패로 종료.
+- `lsof -iTCP:8080 -sTCP:LISTEN` 결과: Java PID 6121이 이미 8080 점유 중.
+- 즉, 재실행할 Spring Boot가 8080 바인딩에 실패하면서 Maven goal이 exit code 1로 종료.
+
+### 안내
+- 기존 8080 점유 프로세스를 종료하거나,
+- 백엔드를 다른 포트(예: 8081)로 실행하도록 안내.
+
+## 2026-02-20 15:07:40 (KST) - History #18
+
+### 요청/지시
+- 8080 포트를 누가 사용 중인지 확인 요청.
+
+### 확인 결과
+- PID 6121, 사용자 `jiyeonk`, 프로세스 `java`.
+- 실행 명령은 `com.banban.market.BanbanMarketApplication --spring.profiles.active=dev` 로 확인됨.
+- 즉, 이전에 실행된 현재 프로젝트 백엔드(Spring Boot) 프로세스가 8080을 점유 중이었음.
+
+## 2026-02-20 15:09:30 (KST) - History #19
+
+### 요청/지시
+- "터미널에서 모두 종료했는데도 8080이 점유되는 이유" 확인 요청.
+
+### 확인 결과
+- 현재도 `java` PID 6121이 8080 LISTEN 중.
+- 터미널 종료와 별개로 프로세스가 백그라운드(detached)로 남아있을 수 있음을 안내.
+
+## 2026-02-20 15:12:20 (KST) - History #20
+
+### 요청/지시
+- 프론트 포트는 무조건 5173으로 고정 요청.
+
+### 수행 내용
+- `frontend/vite.config.js`에 `server.strictPort: true` 추가.
+
+### 결과
+- 5173 포트를 사용할 수 없으면 다른 포트로 자동 변경되지 않고, 실행이 실패하도록 강제됨.
+
+## 2026-02-20 15:18:20 (KST) - History #21
+
+### 요청/지시
+- 이벤트로 현시점부터 3개월간 회원가입 시 방장 권한 부여 요청.
+
+### 완료 작업
+1. 이벤트 기간 설정 추가
+- `backend/src/main/resources/application.yml`
+- 추가 키:
+  - `app.event.host-open-start-date` (기본값: `2026-02-20`)
+  - `app.event.host-open-end-date` (기본값: `2026-05-20`)
+
+2. 회원가입 로직 반영
+- `backend/src/main/java/com/banban/market/service/AuthService.java`
+- 이벤트 기간(`2026-02-20`~`2026-05-20`) 내 가입자는 `score=80`으로 저장되도록 구현.
+- 기간 판별 메서드 `isHostOpenEventPeriod()` 추가.
+
+3. 회귀 방지 테스트 추가
+- `backend/src/test/java/com/banban/market/integration/ApiFlowIntegrationTest.java`
+- `registerDuringHostOpenEvent_startsWithScore80` 테스트 추가.
+
+4. 문서 업데이트
+- `REQUIRED_KEYS.md`: 이벤트 시작/종료일 환경변수(`EVENT_HOST_OPEN_START_DATE`, `EVENT_HOST_OPEN_END_DATE`) 안내 추가.
+- `CLAUDE.md`: 핵심 정책/현재 상태에 이벤트 정책 반영.
+
+### 검증 결과
+- `cd backend && ./mvnw -q test` 통과.
+
+### 현재 상태
+- 2026-02-20부터 2026-05-20까지 신규 가입자는 방장 가능 점수(80)로 시작.
+- 이벤트 기간은 환경변수로 조정 가능.
+
+### 다음 할 일
+1. 운영 환경에서 이벤트 종료일 변경 필요 시 env만 수정 후 재기동
+2. 이벤트 종료 후 점수 정책(기본 50) 복귀 일정 운영 공지

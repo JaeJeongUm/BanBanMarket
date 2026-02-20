@@ -58,12 +58,48 @@ function AdBanner() {
   );
 }
 
-function loadKakaoSdk(appKey, callback) {
-  if (window.kakao?.maps) { callback(); return; }
-  const script = document.createElement("script");
-  script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false`;
-  script.onload = callback;
-  document.head.appendChild(script);
+let kakaoSdkPromise = null;
+
+function loadKakaoSdk(appKey) {
+  if (window.kakao?.maps) {
+    return Promise.resolve(window.kakao.maps);
+  }
+  if (kakaoSdkPromise) {
+    return kakaoSdkPromise;
+  }
+
+  kakaoSdkPromise = new Promise((resolve, reject) => {
+    const scriptId = "kakao-maps-sdk";
+    let script = document.getElementById(scriptId);
+
+    const onLoaded = () => {
+      if (!window.kakao?.maps) {
+        reject(new Error("Kakao maps SDK not available after script load"));
+        return;
+      }
+      window.kakao.maps.load(() => resolve(window.kakao.maps));
+    };
+
+    if (!script) {
+      script = document.createElement("script");
+      script.id = scriptId;
+      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false`;
+      script.async = true;
+      script.onload = onLoaded;
+      script.onerror = () => reject(new Error("Failed to load Kakao map SDK"));
+      document.head.appendChild(script);
+      return;
+    }
+
+    if (window.kakao?.maps) {
+      onLoaded();
+      return;
+    }
+
+    script.addEventListener("load", onLoaded, { once: true });
+  });
+
+  return kakaoSdkPromise;
 }
 
 function KakaoMap({ lat, lon, name }) {
@@ -72,8 +108,10 @@ function KakaoMap({ lat, lon, name }) {
 
   useEffect(() => {
     if (!mapRef.current || !mapKey || !lat || !lon) return;
-    loadKakaoSdk(mapKey, () => {
-      window.kakao.maps.load(() => {
+    let disposed = false;
+    loadKakaoSdk(mapKey)
+      .then(() => {
+        if (disposed || !mapRef.current) return;
         const center = new window.kakao.maps.LatLng(Number(lat), Number(lon));
         const map = new window.kakao.maps.Map(mapRef.current, { center, level: 3 });
         const marker = new window.kakao.maps.Marker({ position: center });
@@ -82,8 +120,17 @@ function KakaoMap({ lat, lon, name }) {
           const iw = new window.kakao.maps.InfoWindow({ content: `<div style="padding:4px 8px;font-size:12px;">${name}</div>` });
           iw.open(map, marker);
         }
-      });
-    });
+        // Modal animation/layout 반영 후 지도 재계산
+        setTimeout(() => {
+          if (disposed) return;
+          map.relayout();
+          map.setCenter(center);
+        }, 280);
+      })
+      .catch(() => {});
+    return () => {
+      disposed = true;
+    };
   }, [lat, lon, name, mapKey]);
 
   if (!mapKey || !lat || !lon) {
@@ -98,8 +145,10 @@ function KakaoMapMulti({ locations }) {
 
   useEffect(() => {
     if (!mapRef.current || !mapKey || !locations?.length) return;
-    loadKakaoSdk(mapKey, () => {
-      window.kakao.maps.load(() => {
+    let disposed = false;
+    loadKakaoSdk(mapKey)
+      .then(() => {
+        if (disposed || !mapRef.current) return;
         const first = locations[0];
         const center = new window.kakao.maps.LatLng(Number(first.latitude), Number(first.longitude));
         const map = new window.kakao.maps.Map(mapRef.current, { center, level: 6 });
@@ -109,8 +158,16 @@ function KakaoMapMulti({ locations }) {
           const iw = new window.kakao.maps.InfoWindow({ content: `<div style="padding:4px 8px;font-size:11px;">${loc.name}</div>` });
           window.kakao.maps.event.addListener(marker, "click", () => iw.open(map, marker));
         });
-      });
-    });
+        setTimeout(() => {
+          if (disposed) return;
+          map.relayout();
+          map.setCenter(center);
+        }, 30);
+      })
+      .catch(() => {});
+    return () => {
+      disposed = true;
+    };
   }, [locations, mapKey]);
 
   if (!mapKey || !locations?.length) {
@@ -559,7 +616,7 @@ function App() {
         <div className="trend-tags">
           {["코스트코", "기저귀", "사료", "LA갈비", "세제", "분유"].map((k) => <span key={k} className="trend-tag" onClick={() => setSearchText(k)}>{k}</span>)}
         </div>
-        <KakaoMapMulti locations={locations} />
+        {page === "search" && <KakaoMapMulti locations={locations} />}
         <div className="nearby-header"><div style={{ fontWeight: 700, fontSize: 14 }}>📍 내 근처 공동구매</div><div className="nearby-count">{searchRooms.length}개</div></div>
         {searchRooms.flatMap((r, idx) => {
           const row = (
@@ -716,7 +773,7 @@ function App() {
 
       <div className={`modal-overlay ${detailOpen ? "open" : ""}`} onClick={(e) => e.target.classList.contains("modal-overlay") && setDetailOpen(false)}>
         <div className="modal" id="detailContent">
-          {detailRoom && (
+          {detailOpen && detailRoom && (
             <>
               <div className="modal-handle" />
               <div className="detail-hero">{catEmojis[detailRoom.category] || "📦"}</div>
