@@ -79,6 +79,12 @@ GET  /actuator/health
 - **프론트엔드**: MVP 완성. 빌드 성공. API 연동 완료.
 - **남은 작업**: 실서버 배포 / Kakao Maps 지도 연동 / GitHub push
 
+## 트리거 키워드
+사용자가 **"계속해"** 라고 말하면:
+1. `codex_history.md`의 최신 히스토리를 읽는다
+2. "다음 이어서 할 일" 항목부터 즉시 작업 시작
+3. 별도 확인 없이 바로 개발 진행
+
 ## 필수 작업 규칙
 1. **작업 완료 시 이 파일(CLAUDE.md)의 "현재 개발 상태" 업데이트**
 2. **작업 완료 시 codex_history.md에 히스토리 누적 기록** (형식: `## YYYY-MM-DD HH:MM:SS (KST) - History #N`)
