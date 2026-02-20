@@ -26,6 +26,38 @@ function datetimeText(value) {
   return new Date(value).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
+function AdBanner() {
+  const adClient = import.meta.env.VITE_ADSENSE_CLIENT;
+  const adSlot = import.meta.env.VITE_ADSENSE_SLOT;
+
+  useEffect(() => {
+    if (!adClient || !adSlot) return;
+    if (!document.querySelector('script[src*="adsbygoogle"]')) {
+      const script = document.createElement("script");
+      script.async = true;
+      script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adClient}`;
+      script.crossOrigin = "anonymous";
+      document.head.appendChild(script);
+    }
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_) {}
+  }, [adClient, adSlot]);
+
+  if (!adClient || !adSlot) {
+    return (
+      <div style={{ background: "linear-gradient(135deg,#f8f9fa,#e9ecef)", border: "1px dashed #dee2e6", borderRadius: 12, padding: "14px 16px", textAlign: "center", margin: "4px 0 8px", color: "#adb5bd" }}>
+        <div style={{ fontSize: 16 }}>📢</div>
+        <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>광고 영역</div>
+        <div style={{ fontSize: 10, marginTop: 1 }}>AdSense 설정 후 실제 광고 표시</div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ margin: "4px 0 8px", overflow: "hidden", borderRadius: 12 }}>
+      <ins className="adsbygoogle" style={{ display: "block" }} data-ad-client={adClient} data-ad-slot={adSlot} data-ad-format="auto" data-full-width-responsive="true" />
+    </div>
+  );
+}
+
 function loadKakaoSdk(appKey, callback) {
   if (window.kakao?.maps) { callback(); return; }
   const script = document.createElement("script");
@@ -488,10 +520,10 @@ function App() {
 
         {homeRooms.length === 0 ? (
           <div className="empty-state"><div className="empty-icon">📭</div><div className="empty-text">해당 카테고리 방이 없어요</div><div className="empty-sub">다른 카테고리를 선택하거나 방을 직접 만들어보세요!</div></div>
-        ) : homeRooms.map((r) => {
+        ) : homeRooms.flatMap((r, idx) => {
           const pct = Math.min(100, ((r.currentQuantity || 0) / (r.targetQuantity || 1)) * 100);
           const isFull = r.currentQuantity >= r.targetQuantity;
-          return (
+          const card = (
             <div className="room-card" key={r.id} onClick={() => openDetail(r.id)}>
               <div className="room-top">
                 <div className="room-img">{catEmojis[r.category] || "📦"}</div>
@@ -517,6 +549,7 @@ function App() {
               </div>
             </div>
           );
+          return idx > 0 && idx % 3 === 0 ? [<AdBanner key={`ad-home-${idx}`} />, card] : [card];
         })}
       </div>
 
@@ -528,17 +561,20 @@ function App() {
         </div>
         <KakaoMapMulti locations={locations} />
         <div className="nearby-header"><div style={{ fontWeight: 700, fontSize: 14 }}>📍 내 근처 공동구매</div><div className="nearby-count">{searchRooms.length}개</div></div>
-        {searchRooms.map((r) => (
-          <div className="nearby-room" key={`s-${r.id}`} onClick={() => openDetail(r.id)}>
-            <div className="nearby-emoji">{catEmojis[r.category] || "📦"}</div>
-            <div style={{ flex: 1 }}>
-              <div className="nearby-name">{r.title}</div>
-              <div className="nearby-sub">⏰ {datetimeText(r.deadline)} · 방장 {r.hostScore}점</div>
-              <div className="nearby-sub">📍 {r.meetingLocation?.name}</div>
+        {searchRooms.flatMap((r, idx) => {
+          const row = (
+            <div className="nearby-room" key={`s-${r.id}`} onClick={() => openDetail(r.id)}>
+              <div className="nearby-emoji">{catEmojis[r.category] || "📦"}</div>
+              <div style={{ flex: 1 }}>
+                <div className="nearby-name">{r.title}</div>
+                <div className="nearby-sub">⏰ {datetimeText(r.deadline)} · 방장 {r.hostScore}점</div>
+                <div className="nearby-sub">📍 {r.meetingLocation?.name}</div>
+              </div>
+              <div className="nearby-dist">근처</div>
             </div>
-            <div className="nearby-dist">근처</div>
-          </div>
-        ))}
+          );
+          return idx > 0 && idx % 3 === 0 ? [<AdBanner key={`ad-search-${idx}`} />, row] : [row];
+        })}
       </div>
 
       <div className={`page ${page === "trade" ? "active" : ""}`}>
