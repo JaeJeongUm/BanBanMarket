@@ -335,3 +335,39 @@
 2. Kakao Maps 연동: 거래 장소 지도 표시 (`VITE_KAKAO_MAP_KEY` 입력 후 KakaoMap 컴포넌트 추가)
 3. 추가 장소 등록: `LocationDataInitializer`에 사용 지역 장소 추가
 4. GitHub push: PAT 또는 SSH 키 설정 후 `git push origin main`
+
+## 2026-02-20 14:15:00 (KST) - History #16
+
+### 요청/지시
+- Kakao Maps 연동 및 장소 추가 등록 순서로 진행 요청.
+
+### 이번 단계 완료 작업
+
+1. **Kakao Maps 연동** (`frontend/src/App.jsx`)
+   - `useRef` import 추가
+   - `loadKakaoSdk()` 헬퍼: Kakao SDK 중복 로딩 방지 (window.kakao?.maps 체크 후 동적 script 삽입)
+   - `KakaoMap` 컴포넌트: 단일 장소 마커 표시 (방 상세 모달 진입 시 거래 장소 지도 표시)
+   - `KakaoMapMulti` 컴포넌트: 복수 장소 마커 표시 (탐색 탭 지도에서 모든 등록 장소 표시, 마커 클릭 시 장소명 InfoWindow)
+   - `VITE_KAKAO_MAP_KEY` 미설정 시 텍스트 주소로 graceful fallback
+   - 방 상세 모달: progress bar 하단에 `<KakaoMap>` 삽입 (lat/lon은 LocationResponse에서 전달)
+   - 방 상세 거래 정보: 장소명 + 주소(address) 함께 표시
+   - 탐색 탭: 기존 map-placeholder를 `<KakaoMapMulti locations={locations} />` 로 교체
+
+2. **장소 추가 등록** (`backend/.../config/LocationDataInitializer.java`)
+   - 기존 5개 → **15개**로 확장
+   - 추가 지역: 홍대입구역, 합정역, 망원한강공원, 이마트 마포공덕점, 이태원역, 용산구청, 성수역, 서울숲, 광화문역, 노원역
+   - 커버리지: 강남·서초·송파 / 마포·홍대·합정 / 용산·이태원 / 성동·성수 / 종로·광화문 / 노원·도봉
+
+### 검증 결과
+- `npm run build`: ✅ 빌드 성공 (175KB JS, 19KB CSS)
+- `./mvnw test`: Tests run: 2, Failures: 0, Errors: 0 ✅
+- GitHub push: `git push origin main` ✅
+
+### 현재 상태
+- **백엔드**: MVP 완성. 테스트 2/2 통과. 장소 15개 시드.
+- **프론트엔드**: Kakao Maps 연동 완료. 키 입력 시 지도 표시, 미입력 시 텍스트 표시.
+- **남은 작업**: 실서버 배포 (docker-compose.yml 준비 완료, VPS 미확보)
+
+### 다음 이어서 할 일
+1. `frontend/.env`에 `VITE_KAKAO_MAP_KEY=발급받은키` 입력 후 실제 지도 동작 확인
+2. 실서버 배포: VPS 확보 후 `.env` 채우고 `docker-compose up -d` 실행

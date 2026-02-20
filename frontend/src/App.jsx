@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
 
 const tokenKey = "banban_token";
@@ -24,6 +24,73 @@ function toDatetimeLocal(value) {
 function datetimeText(value) {
   if (!value) return "-";
   return new Date(value).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function loadKakaoSdk(appKey, callback) {
+  if (window.kakao?.maps) { callback(); return; }
+  const script = document.createElement("script");
+  script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false`;
+  script.onload = callback;
+  document.head.appendChild(script);
+}
+
+function KakaoMap({ lat, lon, name }) {
+  const mapRef = useRef(null);
+  const mapKey = import.meta.env.VITE_KAKAO_MAP_KEY;
+
+  useEffect(() => {
+    if (!mapRef.current || !mapKey || !lat || !lon) return;
+    loadKakaoSdk(mapKey, () => {
+      window.kakao.maps.load(() => {
+        const center = new window.kakao.maps.LatLng(Number(lat), Number(lon));
+        const map = new window.kakao.maps.Map(mapRef.current, { center, level: 3 });
+        const marker = new window.kakao.maps.Marker({ position: center });
+        marker.setMap(map);
+        if (name) {
+          const iw = new window.kakao.maps.InfoWindow({ content: `<div style="padding:4px 8px;font-size:12px;">${name}</div>` });
+          iw.open(map, marker);
+        }
+      });
+    });
+  }, [lat, lon, name, mapKey]);
+
+  if (!mapKey || !lat || !lon) {
+    return <div style={{ background: "#f5f5f5", borderRadius: 8, padding: "12px 16px", textAlign: "center", fontSize: 12, color: "#888", marginBottom: 12 }}>📍 {name || "거래 장소"}</div>;
+  }
+  return <div ref={mapRef} style={{ width: "100%", height: 180, borderRadius: 8, marginBottom: 12 }} />;
+}
+
+function KakaoMapMulti({ locations }) {
+  const mapRef = useRef(null);
+  const mapKey = import.meta.env.VITE_KAKAO_MAP_KEY;
+
+  useEffect(() => {
+    if (!mapRef.current || !mapKey || !locations?.length) return;
+    loadKakaoSdk(mapKey, () => {
+      window.kakao.maps.load(() => {
+        const first = locations[0];
+        const center = new window.kakao.maps.LatLng(Number(first.latitude), Number(first.longitude));
+        const map = new window.kakao.maps.Map(mapRef.current, { center, level: 6 });
+        locations.forEach((loc) => {
+          const pos = new window.kakao.maps.LatLng(Number(loc.latitude), Number(loc.longitude));
+          const marker = new window.kakao.maps.Marker({ position: pos, map });
+          const iw = new window.kakao.maps.InfoWindow({ content: `<div style="padding:4px 8px;font-size:11px;">${loc.name}</div>` });
+          window.kakao.maps.event.addListener(marker, "click", () => iw.open(map, marker));
+        });
+      });
+    });
+  }, [locations, mapKey]);
+
+  if (!mapKey || !locations?.length) {
+    return (
+      <div className="map-placeholder">
+        <div style={{ fontSize: 36 }}>🗺️</div>
+        <div style={{ fontWeight: 700 }}>지도에서 근처 방 보기</div>
+        <div style={{ fontSize: 12 }}>VITE_KAKAO_MAP_KEY 설정 후 활성화</div>
+      </div>
+    );
+  }
+  return <div ref={mapRef} style={{ width: "100%", height: 240, borderRadius: 12, marginBottom: 16 }} />;
 }
 
 function App() {
@@ -459,7 +526,7 @@ function App() {
         <div className="trend-tags">
           {["코스트코", "기저귀", "사료", "LA갈비", "세제", "분유"].map((k) => <span key={k} className="trend-tag" onClick={() => setSearchText(k)}>{k}</span>)}
         </div>
-        <div className="map-placeholder"><div style={{ fontSize: 36 }}>🗺️</div><div style={{ fontWeight: 700 }}>지도에서 근처 방 보기</div><div style={{ fontSize: 12 }}>실서비스에서 지도 연동 예정</div></div>
+        <KakaoMapMulti locations={locations} />
         <div className="nearby-header"><div style={{ fontWeight: 700, fontSize: 14 }}>📍 내 근처 공동구매</div><div className="nearby-count">{searchRooms.length}개</div></div>
         {searchRooms.map((r) => (
           <div className="nearby-room" key={`s-${r.id}`} onClick={() => openDetail(r.id)}>
@@ -619,11 +686,12 @@ function App() {
               <div className="detail-hero">{catEmojis[detailRoom.category] || "📦"}</div>
               <div className="detail-title">{detailRoom.title}</div>
               <div className="progress-bg" style={{ marginBottom: 12 }}><div className={`progress-fill ${(detailRoom.currentQuantity >= detailRoom.targetQuantity) ? "full" : ""}`} style={{ width: `${Math.min(100, (detailRoom.currentQuantity / detailRoom.targetQuantity) * 100)}%` }} /></div>
+              <KakaoMap lat={detailRoom.meetingLocation?.latitude} lon={detailRoom.meetingLocation?.longitude} name={detailRoom.meetingLocation?.name} />
               <div className="detail-section">
                 <div className="detail-sec-title">거래 정보</div>
                 <div className="detail-info-row"><span className="detail-info-label">방장</span><span className="detail-info-val">{detailRoom.hostNickname} ({detailRoom.hostScore}점)</span></div>
                 <div className="detail-info-row"><span className="detail-info-label">참여 가격</span><span className="detail-info-val" style={{ color: "var(--primary)" }}>₩{detailRoom.priceTotal.toLocaleString()}</span></div>
-                <div className="detail-info-row"><span className="detail-info-label">거래 장소</span><span className="detail-info-val">📍 {detailRoom.meetingLocation?.name}</span></div>
+                <div className="detail-info-row"><span className="detail-info-label">거래 장소</span><span className="detail-info-val">📍 {detailRoom.meetingLocation?.name} · {detailRoom.meetingLocation?.address}</span></div>
                 <div className="detail-info-row"><span className="detail-info-label">마감</span><span className="detail-info-val">⏰ {datetimeText(detailRoom.deadline)}</span></div>
               </div>
               <div className="detail-section">
