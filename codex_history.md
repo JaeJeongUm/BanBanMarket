@@ -524,3 +524,23 @@
 ### 다음 할 일
 1. 운영 환경에서 이벤트 종료일 변경 필요 시 env만 수정 후 재기동
 2. 이벤트 종료 후 점수 정책(기본 50) 복귀 일정 운영 공지
+
+## 2026-02-20 15:22:30 (KST) - History #22
+
+### 요청/지시
+- 현재까지 변경사항 git commit 및 push 요청.
+
+### 수행 내용
+1. 변경사항 확인
+- 수정/추가 파일 확인 및 브랜치/원격 점검(`main`, `origin`)
+
+2. 커밋 수행
+- 커밋 메시지: `feat: improve kakao map stability and add host-open signup event`
+- 커밋 해시: `eaf780f`
+
+3. 원격 push 수행
+- `git push -u origin main` 성공
+- 원격 반영: `main -> main`
+
+### 현재 상태
+- 로컬과 GitHub `main` 동기화 완료.
