@@ -544,3 +544,40 @@
 
 ### 현재 상태
 - 로컬과 GitHub `main` 동기화 완료.
+
+## 2026-02-20 15:24:35 (KST) - History #23
+
+### 요청/지시
+- 실질적 소스에 영향 없는 `.md` 파일을 별도 디렉토리에서 관리 요청.
+
+### 수행 내용
+1. 문서 파일 분리 정리
+- 루트/서브 경로의 문서를 `docs/` 하위로 이동:
+  - `docs/REQUIRED_KEYS.md`
+  - `docs/PREDEPLOY_CHECKLIST.md`
+  - `docs/backend/API-CHECKLIST.md`
+  - `docs/backend/HELP.md`
+  - `docs/backend/LOCAL_TEST_GUIDE.md`
+  - `docs/frontend/README.md`
+  - `docs/project/command.md`
+
+2. 경로 참조 업데이트
+- `CLAUDE.md`의 문서 경로를 `docs/` 기준으로 수정:
+  - `docs/REQUIRED_KEYS.md`
+  - `docs/PREDEPLOY_CHECKLIST.md`
+
+3. 문서 인덱스 추가
+- `docs/README.md` 생성(문서 위치 한눈에 확인 가능).
+
+### 현재 상태
+- 운영/개발 문서는 `docs/` 디렉토리 기준으로 관리 가능.
+- 에이전트 동작에 필요한 `CLAUDE.md`, 작업 이력용 `codex_history.md`는 루트 유지.
+
+## 2026-02-20 15:28:34 (KST) - History #24
+
+### 요청/지시
+- 현재까지 변경사항을 `commit` 및 `push` 요청.
+
+### 수행 예정
+1. 변경 파일 스테이징 및 커밋
+2. `origin/main` push

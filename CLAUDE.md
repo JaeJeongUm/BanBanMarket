@@ -18,7 +18,7 @@ banbanmarket/
 ├── backend/          # Spring Boot
 ├── frontend/         # React + Vite
 ├── docs/API_KEYS.md  # API 키 발급 가이드
-├── REQUIRED_KEYS.md  # 운영 환경 변수 목록
+├── docs/REQUIRED_KEYS.md  # 운영 환경 변수 목록
 ├── codex_history.md  # Codex 작업 이력 (Codex와 공유)
 ├── docker-compose.yml
 └── CLAUDE.md         # 이 파일 (Claude Code 자동 로딩)
@@ -81,7 +81,7 @@ GET  /actuator/health
 - **이벤트 정책**: 2026-02-20 ~ 2026-05-20 가입자 score=80 부여(환경변수로 조정 가능).
 - **프론트엔드**: React 단일 SPA + API 연동 완료. `npm run build` 성공.
 - **지도(Kakao Maps)**: SDK 단일 로딩/hidden mount 회피/relayout 보정 적용 완료.
-- **배포 준비**: `docker-compose.yml`, `backend/Dockerfile`, `PREDEPLOY_CHECKLIST.md`, `docs/DEPLOY_RUNBOOK.md`, `scripts/deploy.sh` 준비 완료.
+- **배포 준비**: `docker-compose.yml`, `backend/Dockerfile`, `docs/PREDEPLOY_CHECKLIST.md`, `docs/DEPLOY_RUNBOOK.md`, `scripts/deploy.sh` 준비 완료.
 - **CI**: `.github/workflows/ci.yml` 추가 완료(backend test + frontend build).
 - **남은 작업**: VPS 확보 후 실서버 반영(도메인/TLS/리버스프록시/모니터링 운영값 적용).
 
