@@ -7,6 +7,7 @@
 - `docs/PREDEPLOY_CHECKLIST.md`
 - `docs/API_KEYS.md`
 - `docs/DEPLOY_RUNBOOK.md`
+- `docs/ARCHITECTURE_ANALYSIS.md`
 
 ## Backend
 - `docs/backend/HELP.md`
