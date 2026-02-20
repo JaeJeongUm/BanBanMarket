@@ -581,3 +581,21 @@
 ### 수행 예정
 1. 변경 파일 스테이징 및 커밋
 2. `origin/main` push
+
+## 2026-02-20 15:29:10 (KST) - History #25
+
+### 요청/지시
+- 현재까지 변경사항 `commit` 및 `push`.
+
+### 수행 내용
+1. 커밋 완료
+- 메시지: `chore: reorganize markdown docs under docs`
+- 해시: `3e8cdc1`
+- 포함: 문서 `docs/` 재배치, `CLAUDE.md` 경로 수정, `docs/README.md` 추가, 히스토리 기록
+
+2. 원격 반영 완료
+- `git push -u origin main`
+- 반영: `main` 브랜치 `0ecab9a..3e8cdc1`
+
+### 현재 상태
+- 로컬 `main`과 원격 `origin/main` 동기화 완료.
