@@ -30,17 +30,17 @@ public class RoomController {
 
     @GetMapping
     public ApiResponse<List<RoomResponse>> getRooms(
-            @RequestParam(required = false) RoomCategory category,
-            @RequestParam(required = false) Long locationId,
-            @RequestParam(required = false) RoomStatus status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(name = "category", required = false) RoomCategory category,
+            @RequestParam(name = "locationId", required = false) Long locationId,
+            @RequestParam(name = "status", required = false) RoomStatus status,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size
     ) {
         return ApiResponse.ok(roomService.findRooms(category, locationId, status, page, size));
     }
 
     @GetMapping("/{roomId}")
-    public ApiResponse<RoomDetailResponse> getRoomDetail(@PathVariable Long roomId) {
+    public ApiResponse<RoomDetailResponse> getRoomDetail(@PathVariable("roomId") Long roomId) {
         return ApiResponse.ok(roomService.findRoomDetail(roomId, SecurityUtils.getCurrentUserIdOrNull()));
     }
 
@@ -50,17 +50,17 @@ public class RoomController {
     }
 
     @PostMapping("/{roomId}/join")
-    public ApiResponse<RoomDetailResponse> joinRoom(@PathVariable Long roomId, @Valid @RequestBody JoinRoomRequest request) {
+    public ApiResponse<RoomDetailResponse> joinRoom(@PathVariable("roomId") Long roomId, @Valid @RequestBody JoinRoomRequest request) {
         return ApiResponse.ok(roomService.joinRoom(SecurityUtils.getCurrentUserId(), roomId, request));
     }
 
     @PostMapping("/{roomId}/participants/{participantUserId}/receive")
-    public ApiResponse<RoomDetailResponse> checkReceive(@PathVariable Long roomId, @PathVariable Long participantUserId) {
+    public ApiResponse<RoomDetailResponse> checkReceive(@PathVariable("roomId") Long roomId, @PathVariable("participantUserId") Long participantUserId) {
         return ApiResponse.ok(roomService.checkReceived(SecurityUtils.getCurrentUserId(), roomId, participantUserId));
     }
 
     @PostMapping("/{roomId}/complete")
-    public ApiResponse<RoomDetailResponse> completeRoom(@PathVariable Long roomId) {
+    public ApiResponse<RoomDetailResponse> completeRoom(@PathVariable("roomId") Long roomId) {
         return ApiResponse.ok(roomService.completeRoom(SecurityUtils.getCurrentUserId(), roomId));
     }
 }

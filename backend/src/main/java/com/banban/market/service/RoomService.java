@@ -5,6 +5,7 @@ import com.banban.market.domain.Room;
 import com.banban.market.domain.RoomParticipant;
 import com.banban.market.domain.User;
 import com.banban.market.domain.enums.ParticipantStatus;
+import com.banban.market.domain.enums.LocationType;
 import com.banban.market.domain.enums.RoomCategory;
 import com.banban.market.domain.enums.RoomStatus;
 import com.banban.market.dto.request.JoinRoomRequest;
@@ -54,7 +55,56 @@ public class RoomService {
     @Transactional(readOnly = true)
     public RoomDetailResponse findRoomDetail(Long roomId, Long currentUserId) {
         Room room = findRoomById(roomId);
-        return new RoomDetailResponse(room, currentUserId);
+        User currentUser = (currentUserId != null)
+                ? userRepository.findById(currentUserId).orElse(null)
+                : null;
+        String joinFailReason = calculateJoinFailReason(room, currentUserId, currentUser);
+        return new RoomDetailResponse(room, currentUserId, joinFailReason);
+    }
+
+    /**
+     * 사용자가 해당 방에 참여할 수 없는 이유를 반환합니다.
+     * 참여 가능한 경우 null을 반환합니다.
+     * 비로그인(currentUserId == null) 상태에서는 null 반환 (로그인 유도는 프론트엔드 담당).
+     */
+    private String calculateJoinFailReason(Room room, Long currentUserId, User currentUser) {
+        if (currentUserId == null) {
+            return null;
+        }
+
+        // 방 상태가 OPEN이 아닌 경우
+        if (room.getStatus() != RoomStatus.OPEN) {
+            return "방이 마감되었습니다";
+        }
+
+        // 목표 수량이 이미 달성된 경우 (status 체크와 별개로 isFull 기준 명시)
+        if (room.isFull()) {
+            return "모집이 완료되었습니다";
+        }
+
+        // 마감 시간이 지난 경우
+        if (!LocalDateTime.now().isBefore(room.getDeadline())) {
+            return "방이 마감되었습니다";
+        }
+
+        // 방장인 경우 (방장은 참여 불가)
+        if (room.getHost().getId().equals(currentUserId)) {
+            return null; // 방장에게는 joinFailReason 표시 안 함 (isHost로 UI 처리)
+        }
+
+        // 이미 참여한 경우
+        boolean alreadyJoined = room.getParticipants().stream()
+                .anyMatch(p -> p.getUser().getId().equals(currentUserId));
+        if (alreadyJoined) {
+            return "이미 참여 중인 방입니다";
+        }
+
+        // 미작성 후기가 있는 경우
+        if (currentUser != null && currentUser.hasBlockingPendingReviews()) {
+            return "미작성 후기가 있어 참여할 수 없습니다";
+        }
+
+        return null; // 참여 가능
     }
 
     public RoomResponse createRoom(Long currentUserId, RoomCreateRequest request) {
@@ -68,8 +118,7 @@ public class RoomService {
             throw new BusinessException(ErrorCode.PENDING_REVIEW_REQUIRED);
         }
 
-        Location meetingLocation = locationRepository.findById(request.getMeetingLocationId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.LOCATION_NOT_FOUND));
+        Location meetingLocation = resolveMeetingLocation(request);
 
         Room room = new Room();
         room.setTitle(request.getTitle());
@@ -189,5 +238,30 @@ public class RoomService {
     private void incrementPendingReview(User user) {
         Integer current = user.getPendingReviewCount() == null ? 0 : user.getPendingReviewCount();
         user.setPendingReviewCount(current + 1);
+    }
+
+    private Location resolveMeetingLocation(RoomCreateRequest request) {
+        if (request.getMeetingLocationId() != null) {
+            return locationRepository.findById(request.getMeetingLocationId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.LOCATION_NOT_FOUND));
+        }
+
+        boolean hasCustomLocation =
+                request.getMeetingLocationName() != null && !request.getMeetingLocationName().isBlank() &&
+                request.getMeetingLocationAddress() != null && !request.getMeetingLocationAddress().isBlank() &&
+                request.getMeetingLatitude() != null &&
+                request.getMeetingLongitude() != null;
+
+        if (!hasCustomLocation) {
+            throw new BusinessException(ErrorCode.LOCATION_NOT_FOUND);
+        }
+
+        Location location = new Location();
+        location.setName(request.getMeetingLocationName().trim());
+        location.setAddress(request.getMeetingLocationAddress().trim());
+        location.setLatitude(request.getMeetingLatitude());
+        location.setLongitude(request.getMeetingLongitude());
+        location.setLocationType(LocationType.COMMUNITY_CENTER);
+        return locationRepository.save(location);
     }
 }

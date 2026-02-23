@@ -21,22 +21,22 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/{userId}")
-    public ApiResponse<UserResponse> getUser(@PathVariable Long userId) {
+    public ApiResponse<UserResponse> getUser(@PathVariable("userId") Long userId) {
         return ApiResponse.ok(userService.findById(userId));
     }
 
     @GetMapping("/{userId}/rooms/hosted")
-    public ApiResponse<List<RoomResponse>> getHostedRooms(@PathVariable Long userId) {
+    public ApiResponse<List<RoomResponse>> getHostedRooms(@PathVariable("userId") Long userId) {
         return ApiResponse.ok(userService.getMyHostedRooms(userId));
     }
 
     @GetMapping("/{userId}/rooms/participated")
-    public ApiResponse<List<RoomResponse>> getParticipatedRooms(@PathVariable Long userId) {
+    public ApiResponse<List<RoomResponse>> getParticipatedRooms(@PathVariable("userId") Long userId) {
         return ApiResponse.ok(userService.getMyParticipatedRooms(userId));
     }
 
     @GetMapping("/{userId}/reviews")
-    public ApiResponse<List<ReviewResponse>> getMyReviews(@PathVariable Long userId) {
+    public ApiResponse<List<ReviewResponse>> getMyReviews(@PathVariable("userId") Long userId) {
         return ApiResponse.ok(userService.getMyReviews(userId));
     }
 }

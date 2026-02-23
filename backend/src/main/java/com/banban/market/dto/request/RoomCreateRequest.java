@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
@@ -30,8 +31,17 @@ public class RoomCreateRequest {
     @Min(1)
     private Integer priceTotal;
     
-    @NotNull
     private Long meetingLocationId;
+
+    @Size(max = 100)
+    private String meetingLocationName;
+
+    @Size(max = 255)
+    private String meetingLocationAddress;
+
+    private BigDecimal meetingLatitude;
+
+    private BigDecimal meetingLongitude;
     
     @NotNull
     private LocalDateTime meetingTime;

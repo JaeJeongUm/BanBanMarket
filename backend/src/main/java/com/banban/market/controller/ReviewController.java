@@ -29,7 +29,7 @@ public class ReviewController {
     }
 
     @GetMapping("/users/{userId}")
-    public ApiResponse<List<ReviewResponse>> getUserReviews(@PathVariable Long userId) {
+    public ApiResponse<List<ReviewResponse>> getUserReviews(@PathVariable("userId") Long userId) {
         return ApiResponse.ok(reviewService.getUserReviews(userId));
     }
 }

@@ -102,6 +102,51 @@
   .form-input:focus,.form-select:focus { border-color:var(--primary); }
   .form-row { display:flex; gap:10px; }
   .form-row .form-group { flex:1; }
+  .date-time-row { align-items:center; }
+  .date-select { flex:1.2; }
+  .time-input { flex:0.8; min-width:120px; }
+  .create-map { width:100%; height:180px; border-radius:12px; margin-bottom:10px; border:1px solid var(--border); }
+  .map-search-row { display:flex; gap:8px; margin-bottom:8px; }
+  .map-search-btn { min-width:64px; padding:0 12px; border-radius:10px; }
+  .map-search-results {
+    max-height:180px;
+    overflow:auto;
+    border:1px solid var(--border);
+    border-radius:10px;
+    margin-bottom:10px;
+    background:var(--card);
+  }
+  .map-search-item {
+    width:100%;
+    text-align:left;
+    border:none;
+    border-bottom:1px solid var(--border);
+    background:transparent;
+    padding:9px 10px;
+    cursor:pointer;
+    font-family:'Noto Sans KR',sans-serif;
+  }
+  .map-search-item:last-child { border-bottom:none; }
+  .map-search-name { font-size:13px; font-weight:700; }
+  .map-search-address { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .location-chip-wrap { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+  .location-chip-wrap::-webkit-scrollbar { display:none; }
+  .location-chip {
+    border:1.5px solid var(--border);
+    border-radius:18px;
+    background:var(--card);
+    color:var(--text-sub);
+    font-size:12px;
+    font-weight:700;
+    padding:7px 12px;
+    white-space:nowrap;
+    cursor:pointer;
+  }
+  .location-chip.active {
+    border-color:var(--primary);
+    background:var(--primary-pale);
+    color:var(--primary);
+  }
   .place-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; }
   .place-opt { border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:8px; font-size:13px; }
   .place-opt.selected { border-color:var(--primary); background:var(--primary-pale); color:var(--primary); font-weight:700; }
@@ -175,12 +220,13 @@
   .map-placeholder { background:var(--card); border-radius:16px; height:160px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--text-muted); font-size:14px; border:2px dashed var(--border); margin-bottom:16px; }
   .nearby-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
   .nearby-count { background:var(--primary-pale); color:var(--primary); font-size:12px; font-weight:700; padding:2px 10px; border-radius:20px; }
-  .nearby-room { display:flex; align-items:center; gap:12px; background:var(--card); border-radius:12px; padding:12px; margin-bottom:8px; cursor:pointer; box-shadow:var(--shadow); transition:all 0.15s; }
+  .nearby-room { position:relative; display:flex; align-items:center; gap:12px; background:var(--card); border-radius:12px; padding:12px; margin-bottom:8px; cursor:pointer; box-shadow:var(--shadow); transition:all 0.15s; }
   .nearby-room:hover { transform:translateX(4px); }
   .nearby-emoji { font-size:28px; width:48px; height:48px; background:var(--bg); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .nearby-name { font-size:13px; font-weight:700; margin-bottom:2px; }
   .nearby-sub { font-size:11px; color:var(--text-muted); }
   .nearby-dist { font-size:12px; font-weight:700; color:var(--blue); }
+  .nearby-status-badge { top:8px; right:8px; }
 
   /* 내 거래 */
   .trade-tabs { display:flex; background:var(--bg); border-radius:12px; padding:4px; margin-bottom:16px; }
@@ -249,7 +295,76 @@
   .toast { position:fixed; top:70px; left:50%; transform:translateX(-50%); background:var(--text); color:white; padding:12px 20px; border-radius:12px; font-size:14px; font-weight:500; z-index:999; white-space:nowrap; opacity:0; transition:opacity 0.3s; pointer-events:none; }
   .toast.show { opacity:1; }
 
+  .login-required-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 23, 20, 0.45);
+    z-index: 350;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(2px);
+  }
+  .login-required-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px 18px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .login-required-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .login-required-sub {
+    color: var(--text-sub);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
   .empty-state { text-align:center; padding:48px 20px; color:var(--text-muted); }
   .empty-icon { font-size:48px; margin-bottom:12px; }
   .empty-text { font-size:15px; font-weight:700; margin-bottom:6px; color:var(--text-sub); }
   .empty-sub { font-size:13px; }
+
+  /* 로딩 애니메이션 */
+  .loading-center { max-width:480px; margin:16px auto; display:flex; justify-content:center; align-items:center; gap:6px; }
+  .loading-dot { width:8px; height:8px; border-radius:50%; background:var(--primary); display:inline-block; animation:dotBounce 1.2s ease-in-out infinite; }
+  .loading-dot:nth-child(2) { animation-delay:0.2s; }
+  .loading-dot:nth-child(3) { animation-delay:0.4s; }
+  @keyframes dotBounce { 0%,80%,100%{transform:scale(0.7);opacity:0.5} 40%{transform:scale(1);opacity:1} }
+
+  /* 방 카드 상태 배지 */
+  .room-status-badge { position:absolute; top:0; right:0; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
+  .room-status-open { background:#DCFCE7; color:#16a34a; }
+  .room-status-closed { background:#FEE2E2; color:#dc2626; }
+  .room-status-completed { background:#F3F4F6; color:#6b7280; }
+
+  /* 마감 임박 태그 */
+  .tag-urgent { background:#FEE2E2 !important; color:#dc2626 !important; font-weight:700; }
+
+  /* 로그인/회원가입 탭 */
+  .auth-tabs { display:flex; background:var(--bg); border-radius:12px; padding:4px; margin-bottom:20px; }
+  .auth-tab { flex:1; padding:10px; text-align:center; font-size:14px; font-weight:700; cursor:pointer; border-radius:8px; transition:all 0.2s; color:var(--text-muted); border:none; background:none; font-family:'Noto Sans KR',sans-serif; }
+  .auth-tab.active { background:var(--primary); color:white; box-shadow:0 2px 8px rgba(255,75,53,0.3); }
+
+  /* 비밀번호 토글 버튼 */
+  .pw-toggle-btn { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; padding:0; line-height:1; color:var(--text-muted); }
+
+  /* 인증 에러 메시지 */
+  .auth-error { background:#FEF2F2; border:1px solid #FCA5A5; border-radius:8px; padding:10px 12px; font-size:13px; color:#dc2626; margin-bottom:12px; text-align:center; }
+
+  /* 점수 획득 방법 가이드 */
+  .score-guide { background:#f8f9fa; border-radius:8px; padding:10px 12px; font-size:12px; color:var(--text-muted); margin-top:8px; line-height:1.8; }
+
+  /* 참여자 칩 - 본인 표시 */
+  .participant-chip-me { background:var(--primary-pale); border:1.5px solid var(--primary); color:var(--primary); font-weight:700; }
+
+  /* 로그아웃 버튼 */
+  .logout-btn { border:1.5px solid var(--border) !important; border-radius:12px !important; color:var(--text-sub) !important; font-weight:700 !important; font-size:14px !important; margin-top:0 !important; transition:all 0.15s; }
+  .logout-btn:hover { border-color:var(--primary) !important; color:var(--primary) !important; }
