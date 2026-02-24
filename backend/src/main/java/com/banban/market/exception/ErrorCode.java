@@ -20,6 +20,8 @@ public enum ErrorCode {
     ALREADY_JOINED(400, "이미 참여한 방입니다"),
     QUANTITY_EXCEEDED(400, "요청 수량이 남은 수량을 초과합니다"),
     NOT_PARTICIPANT(400, "해당 방의 참여자가 아닙니다"),
+    INVALID_DEADLINE(400, "마감 시간은 만나는 시간보다 빨라야 합니다"),
+    INVALID_MEETING_TIME(400, "만나는 시간은 현재보다 미래여야 합니다"),
 
     // User / Score
     USER_NOT_FOUND(404, "존재하지 않는 사용자입니다"),

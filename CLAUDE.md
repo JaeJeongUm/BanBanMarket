@@ -94,7 +94,7 @@ GET  /actuator/health
 ```
 
 ## 현재 개발 상태
-- **백엔드**: MVP 완성. 테스트(컨텍스트 로드 + 통합 플로우) 통과.
+- **백엔드**: MVP 완성. 테스트(컨텍스트 로드 + 통합 플로우) 통과. `RoomResponse.updatedAt` 필드 추가, `createRoom` deadline/meetingTime 서버 검증 추가(2026-02-24).
 - **이벤트 정책**: 2026-02-20 ~ 2026-05-20 가입자 score=80 부여(환경변수로 조정 가능).
 - **프론트엔드**: React 단일 SPA + API 연동 완료. `npm run build` 성공.
   - **UI/UX 대규모 개선 완료 (2026-02-23)**: 로그인 모달 탭 전환·에러 내부 표시·비밀번호 토글·Enter 제출, 방 카드 상태 배지·마감임박 표시, FAB 점수/후기 조건 토스트, 방 상세 joinFailReason 표시·참여자 "나 ✓", 방 생성 단위당 가격 미리보기, 마이페이지 점수 가이드·로그아웃 버튼, 내 거래 비로그인 모달 유도, 로딩 dot 애니메이션, API 상태 텍스트 제거, 모달 스크롤 최상단 복귀 등.
@@ -102,8 +102,9 @@ GET  /actuator/health
   - **로그인 전 접근 제어 UI 추가 (2026-02-23)**: 비로그인 시 전체 화면에 "로그인이 필요합니다" 안내 오버레이를 표시하고 로그인 모달로 유도.
   - **방 생성 UX 개선 (2026-02-23)**: 거래장소를 지도+마커 클릭으로 선택하도록 변경하고, 시간 입력을 `월/일(요일)+시간` 조합으로 재구성(연도 노출 제거).
   - **지도 검색 등록 지원 (2026-02-23)**: 방 생성 시 카카오 지도 키워드 검색 결과를 선택해 장소를 등록하고, 기존 장소 ID 없이도 백엔드에서 신규 `Location`을 생성해 방 생성 가능.
+  - **버그 수정 및 UX 안정화 (2026-02-24)**: `KakaoLocationPicker` 무한 재렌더링 버그 수정(onSelectCustom useRef 패턴 적용), `resetCreateForm` 함수 추가(방 생성 성공/취소/오버레이 클릭 시 폼 초기화), `createModalError` state 추가(모달 내부 에러 표시), `error` 상태 4초 자동 소멸, 방 생성 필수 입력 검증(상품명/거래장소), CSS `width:87%` 하드코딩 제거.
 - **인증(개발계)**: `dev` 프로필에서 테스트용 관리자 계정 자동 시드(`id: admin`, `pw: admin`) 추가. 로그인 요청은 아이디 문자열(`admin`)도 허용하도록 `LoginRequest` 이메일 형식 제한 제거.
-- **지도(Kakao Maps)**: SDK 단일 로딩/hidden mount 회피/relayout 보정 적용 완료.
+- **지도(Kakao Maps)**: SDK 단일 로딩/hidden mount 회피/relayout 보정 적용 완료. 현재 위치(geolocation) 초기 표시 + 실패 시 강남역 폴백 적용(2026-02-24). 탐색 탭 지도는 OPEN 방의 거래장소만 표시. 지도 칩 제거, 선택 장소 카드 UI 추가.
 - **배포 준비**: `docker-compose.yml`, `backend/Dockerfile`, `docs/PREDEPLOY_CHECKLIST.md`, `docs/DEPLOY_RUNBOOK.md`, `scripts/deploy.sh` 준비 완료.
 - **CI**: `.github/workflows/ci.yml` 추가 완료(backend test + frontend build).
 - **남은 작업**: VPS 확보 후 실서버 반영(도메인/TLS/리버스프록시/모니터링 운영값 적용).

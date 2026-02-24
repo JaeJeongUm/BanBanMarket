@@ -47,7 +47,9 @@ function buildCreateDateOptions(days = 21) {
 
 function toIsoFromDateAndTime(dateValue, timeValue) {
   if (!dateValue || !timeValue) return null;
-  return new Date(`${dateValue}T${timeValue}:00`).toISOString();
+  // .toISOString()은 UTC 변환(-9h)을 일으켜 백엔드(LocalDateTime) 저장값과 표시값이 9시간 어긋남.
+  // 로컬 시간 문자열을 그대로 전송하고, 백엔드도 그대로 저장·반환하므로 일치.
+  return `${dateValue}T${timeValue}:00`;
 }
 
 // 마감 1시간 이내 여부
@@ -185,7 +187,8 @@ function KakaoMapMulti({ locations }) {
         locations.forEach((loc) => {
           const pos = new window.kakao.maps.LatLng(Number(loc.latitude), Number(loc.longitude));
           const marker = new window.kakao.maps.Marker({ position: pos, map });
-          const iw = new window.kakao.maps.InfoWindow({ content: `<div style="padding:4px 8px;font-size:11px;">${loc.name}</div>` });
+          const label = loc.roomTitle ? `<b style="color:#FF4B35">${loc.roomTitle}</b><br/>${loc.name}` : loc.name;
+          const iw = new window.kakao.maps.InfoWindow({ content: `<div style="padding:5px 8px;font-size:11px;line-height:1.5;">${label}</div>` });
           window.kakao.maps.event.addListener(marker, "click", () => iw.open(map, marker));
         });
         setTimeout(() => {
@@ -204,8 +207,8 @@ function KakaoMapMulti({ locations }) {
     return (
       <div className="map-placeholder">
         <div style={{ fontSize: 36 }}>🗺️</div>
-        <div style={{ fontWeight: 700 }}>지도에서 근처 방 보기</div>
-        <div style={{ fontSize: 12 }}>VITE_KAKAO_MAP_KEY 설정 후 활성화</div>
+        <div style={{ fontWeight: 700 }}>{!mapKey ? "지도에서 근처 방 보기" : "현재 모집중인 방이 없습니다"}</div>
+        <div style={{ fontSize: 12 }}>{!mapKey ? "VITE_KAKAO_MAP_KEY 설정 후 활성화" : "방이 생기면 지도에 표시됩니다"}</div>
       </div>
     );
   }
@@ -213,6 +216,7 @@ function KakaoMapMulti({ locations }) {
 }
 
 function KakaoLocationPicker({
+  isOpen,
   locations,
   selectedLocationId,
   selectedCustomLocation,
@@ -223,59 +227,141 @@ function KakaoLocationPicker({
   const mapKey = import.meta.env.VITE_KAKAO_MAP_KEY;
   const [keyword, setKeyword] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const onSelectCustomRef = useRef(onSelectCustom);
+  const mapObjRef = useRef(null); // { map, marker, iw } - 인스턴스 재사용
+
+  // onSelectCustom ref 동기화 (deps 루프 방지)
+  useEffect(() => {
+    onSelectCustomRef.current = onSelectCustom;
+  }, [onSelectCustom]);
 
   const selectedSaved = locations.find((l) => String(l.id) === String(selectedLocationId));
-  const selected = selectedSaved || selectedCustomLocation || locations[0];
+  // 선택된 장소 (기본값 없음 — 사용자가 명시적으로 선택해야 함)
+  const selected = selectedSaved || selectedCustomLocation || null;
+  // 현재위치 불가 시 폴백: 강남역
+  const GANGNAM = { latitude: 37.4981640, longitude: 127.0276368 };
 
+  // 지도 초기화: 모달이 열릴 때(isOpen=true)만 실행, 인스턴스 재사용
   useEffect(() => {
-    if (!mapRef.current || !mapKey || !selected) return;
+    if (!isOpen || !mapRef.current || !mapKey) return;
+
+    // 이미 지도가 만들어진 경우 → relayout만
+    if (mapObjRef.current) {
+      const { map, marker, iw } = mapObjRef.current;
+      setTimeout(() => {
+        map.relayout();
+        if (selected) {
+          const center = new window.kakao.maps.LatLng(Number(selected.latitude), Number(selected.longitude));
+          map.setCenter(center);
+          marker.setPosition(center);
+          marker.setMap(map);
+          iw.setContent(`<div style="padding:5px 9px;font-size:12px;font-weight:700;">${selected.name}</div>`);
+          iw.open(map, marker);
+        }
+      }, 350);
+      return;
+    }
+
     let disposed = false;
+
+    // 현재위치 조회 후 지도 생성 (실패 시 강남역으로 폴백)
+    function initMap(lat, lon, level) {
+      if (disposed || !mapRef.current) return;
+      const center = new window.kakao.maps.LatLng(lat, lon);
+      const map = new window.kakao.maps.Map(mapRef.current, { center, level });
+      const marker = new window.kakao.maps.Marker({ position: center });
+      const iw = new window.kakao.maps.InfoWindow({ content: "" });
+
+      // 현재위치 파란 점 표시 (선택 전)
+      if (!selected) {
+        const currentPosContent = `<div style="padding:4px 9px;font-size:11px;color:#3B82F6;font-weight:700;">📌 현재 위치</div>`;
+        iw.setContent(currentPosContent);
+        marker.setMap(map);
+        iw.open(map, marker);
+      } else {
+        marker.setMap(map);
+        iw.setContent(`<div style="padding:5px 9px;font-size:12px;font-weight:700;">${selected.name}</div>`);
+        iw.open(map, marker);
+      }
+
+      mapObjRef.current = { map, marker, iw };
+
+      const geocoder = new window.kakao.maps.services.Geocoder();
+      window.kakao.maps.event.addListener(map, "click", (mouseEvent) => {
+        const latlng = mouseEvent.latLng;
+        const clickLat = Number(latlng.getLat().toFixed(7));
+        const clickLon = Number(latlng.getLng().toFixed(7));
+        marker.setPosition(latlng);
+        marker.setMap(map);
+        map.panTo(latlng);
+        geocoder.coord2Address(clickLon, clickLat, (result, status) => {
+          if (status === window.kakao.maps.services.Status.OK && result?.[0]) {
+            const road = result[0].road_address?.address_name || "";
+            const jibun = result[0].address?.address_name || "";
+            const address = road || jibun || `${clickLat}, ${clickLon}`;
+            const name = road ? `선택 위치 (${road})` : "선택 위치";
+            iw.setContent(`<div style="padding:5px 9px;font-size:12px;font-weight:700;">${name}</div>`);
+            iw.open(map, marker);
+            onSelectCustomRef.current({ name, address, latitude: clickLat, longitude: clickLon });
+            return;
+          }
+          iw.setContent(`<div style="padding:5px 9px;font-size:12px;font-weight:700;">선택 위치</div>`);
+          iw.open(map, marker);
+          onSelectCustomRef.current({ name: "선택 위치", address: `${clickLat}, ${clickLon}`, latitude: clickLat, longitude: clickLon });
+        });
+      });
+
+      // 모달 slideUp 애니메이션(0.3s) 완료 후 레이아웃 재계산
+      setTimeout(() => {
+        if (disposed) return;
+        map.relayout();
+        map.setCenter(center);
+      }, 350);
+    }
+
     loadKakaoSdk(mapKey)
       .then(() => {
-        if (disposed || !mapRef.current) return;
-        const center = new window.kakao.maps.LatLng(Number(selected.latitude), Number(selected.longitude));
-        const map = new window.kakao.maps.Map(mapRef.current, { center, level: 5 });
-        const activeMarker = new window.kakao.maps.Marker({ position: center, map });
-        const activeIw = new window.kakao.maps.InfoWindow({ content: `<div style="padding:4px 8px;font-size:11px;">${selected.name || "선택 위치"}</div>` });
-        activeIw.open(map, activeMarker);
-        map.panTo(center);
-
-        const geocoder = new window.kakao.maps.services.Geocoder();
-        window.kakao.maps.event.addListener(map, "click", (mouseEvent) => {
-          const latlng = mouseEvent.latLng;
-          const lat = Number(latlng.getLat().toFixed(7));
-          const lon = Number(latlng.getLng().toFixed(7));
-          activeMarker.setPosition(latlng);
-          map.panTo(latlng);
-          geocoder.coord2Address(lon, lat, (result, status) => {
-            if (status === window.kakao.maps.services.Status.OK && result?.[0]) {
-              const road = result[0].road_address?.address_name || "";
-              const jibun = result[0].address?.address_name || "";
-              const address = road || jibun || `${lat}, ${lon}`;
-              onSelectCustom({
-                name: road ? `선택 위치 (${road})` : "선택 위치",
-                address,
-                latitude: lat,
-                longitude: lon
-              });
-              return;
-            }
-            onSelectCustom({
-              name: "선택 위치",
-              address: `${lat}, ${lon}`,
-              latitude: lat,
-              longitude: lon
-            });
-          });
-        });
+        if (disposed) return;
+        if (selected) {
+          // 이미 선택된 장소가 있으면 바로 그 위치로
+          initMap(Number(selected.latitude), Number(selected.longitude), 5);
+        } else if (navigator.geolocation) {
+          // 현재위치 요청
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              if (!disposed) initMap(pos.coords.latitude, pos.coords.longitude, 5);
+            },
+            () => {
+              // 권한 거부 또는 오류 → 강남역으로 폴백
+              if (!disposed) initMap(GANGNAM.latitude, GANGNAM.longitude, 6);
+            },
+            { timeout: 5000, maximumAge: 60000 }
+          );
+        } else {
+          // geolocation 미지원 → 강남역
+          initMap(GANGNAM.latitude, GANGNAM.longitude, 6);
+        }
       })
       .catch(() => {});
-    return () => {
-      disposed = true;
-    };
-  }, [mapKey, onSelectCustom, selected]);
+    return () => { disposed = true; };
+  }, [mapKey, isOpen]);
 
-  const selectedName = selected?.name;
+  // selected 변경 시 마커·중심만 업데이트 (지도 재생성 없음)
+  useEffect(() => {
+    if (!mapObjRef.current) return;
+    const { map, marker, iw } = mapObjRef.current;
+    if (selected) {
+      const center = new window.kakao.maps.LatLng(Number(selected.latitude), Number(selected.longitude));
+      marker.setPosition(center);
+      marker.setMap(map);
+      iw.setContent(`<div style="padding:5px 9px;font-size:12px;font-weight:700;">${selected.name}</div>`);
+      iw.open(map, marker);
+      map.panTo(center);
+    } else {
+      marker.setMap(null);
+      iw.close();
+    }
+  }, [selected]);
 
   function searchPlaces() {
     if (!keyword.trim() || !window.kakao?.maps?.services) return;
@@ -289,26 +375,29 @@ function KakaoLocationPicker({
     });
   }
 
-  if (!locations?.length) {
-    return <div className="map-placeholder" style={{ height: 120 }}>거래 장소 데이터가 없습니다.</div>;
-  }
-
+  // 지도 키 없는 환경 — 드롭다운으로 대체
   if (!mapKey) {
     return (
       <div>
-        <div className="location-chip-wrap">
+        <select
+          className="form-select"
+          value={selectedLocationId || ""}
+          onChange={(e) => onSelectSaved(e.target.value)}
+        >
+          <option value="">— 거래 장소 선택 —</option>
           {locations.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              className={`location-chip ${String(l.id) === String(selectedLocationId) ? "active" : ""}`}
-              onClick={() => onSelectSaved(String(l.id))}
-            >
-              {l.name}
-            </button>
+            <option key={l.id} value={String(l.id)}>{l.name}</option>
           ))}
-        </div>
-        <div className="nearby-sub" style={{ marginTop: 8 }}>선택된 장소: {selectedName || "-"}</div>
+        </select>
+        {selected && (
+          <div className="selected-location-card">
+            <span style={{ fontSize: 20 }}>📍</span>
+            <div style={{ flex: 1 }}>
+              <div className="selected-location-name">{selected.name}</div>
+              <div className="selected-location-address">{selected.address}</div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -321,7 +410,7 @@ function KakaoLocationPicker({
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && searchPlaces()}
-          placeholder="지도에서 장소 검색 (예: 강남역 11번 출구)"
+          placeholder="장소 검색 후 선택하세요 (예: 강남역 11번 출구)"
         />
         <button type="button" className="review-btn map-search-btn" onClick={searchPlaces}>검색</button>
       </div>
@@ -350,19 +439,21 @@ function KakaoLocationPicker({
         </div>
       )}
       <div ref={mapRef} className="create-map" />
-      <div className="location-chip-wrap">
-        {locations.map((l) => (
-          <button
-            key={l.id}
-            type="button"
-            className={`location-chip ${String(l.id) === String(selectedLocationId) ? "active" : ""}`}
-            onClick={() => onSelectSaved(String(l.id))}
-          >
-            {l.name}
-          </button>
-        ))}
-      </div>
-      <div className="nearby-sub" style={{ marginTop: 8 }}>선택된 장소: {selectedName || "-"}</div>
+      {/* 선택된 장소 — 선택 전/후 명확히 구분 */}
+      {selected ? (
+        <div className="selected-location-card">
+          <span style={{ fontSize: 22 }}>📍</span>
+          <div style={{ flex: 1 }}>
+            <div className="selected-location-name">{selected.name}</div>
+            <div className="selected-location-address">{selected.address}</div>
+          </div>
+          <span style={{ fontSize: 11, color: "var(--green)", fontWeight: 700 }}>선택됨 ✓</span>
+        </div>
+      ) : (
+        <div className="select-location-hint">
+          🔍 위에서 장소를 검색하거나 지도를 직접 클릭해서 선택하세요
+        </div>
+      )}
     </div>
   );
 }
@@ -393,6 +484,7 @@ function App() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [createModalError, setCreateModalError] = useState("");
   const [createForm, setCreateForm] = useState(() => {
     const options = buildCreateDateOptions(21);
     const first = options[0]?.value || "";
@@ -453,6 +545,22 @@ function App() {
     return rooms.filter((r) => `${r.title} ${catLabels[r.category]}`.includes(q));
   }, [rooms, searchText]);
 
+  // 탐색 지도: OPEN 상태 방들의 거래 장소만 중복 제거 후 표시
+  const mapLocations = useMemo(() => {
+    const seen = new Set();
+    return rooms
+      .filter((r) => r.status === "OPEN" && r.meetingLocation?.latitude)
+      .reduce((acc, r) => {
+        const loc = r.meetingLocation;
+        const key = `${loc.latitude},${loc.longitude}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          acc.push({ ...loc, roomTitle: r.title });
+        }
+        return acc;
+      }, []);
+  }, [rooms]);
+
   const tradeData = useMemo(() => {
     const joined = myParticipated.map((r) => ({ ...r, mode: "join" }));
     const hosted = myHosted.map((r) => ({ ...r, mode: "host" }));
@@ -476,6 +584,12 @@ function App() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(""), 4000);
+    return () => clearTimeout(t);
+  }, [error]);
+
   // 인증 모달 닫기 시 초기화
   function closeAuthModal() {
     setAuthModalOpen(false);
@@ -484,23 +598,36 @@ function App() {
     setShowPassword(false);
   }
 
+  // 방 생성 폼 초기화
+  function resetCreateForm() {
+    const options = buildCreateDateOptions(21);
+    const first = options[0]?.value || "";
+    setCreateModalError("");
+    setCreateForm({
+      category: "FOOD",
+      title: "",
+      targetQuantity: 2,
+      unit: "개",
+      priceTotal: 10000,
+      meetingLocationId: "",
+      meetingLocationName: "",
+      meetingLocationAddress: "",
+      meetingLatitude: "",
+      meetingLongitude: "",
+      meetingDate: first,
+      meetingTime: "19:00",
+      deadlineDate: first,
+      deadlineTime: "18:00",
+      description: ""
+    });
+  }
+
   async function boot() {
     try {
       setLoading(true);
       const [roomData, locationData] = await Promise.all([api.getRooms(), api.getLocations()]);
       setRooms(roomData || []);
       setLocations(locationData || []);
-      if (locationData?.length) {
-        const first = locationData[0];
-        setCreateForm((prev) => ({
-          ...prev,
-          meetingLocationId: String(first.id),
-          meetingLocationName: first.name,
-          meetingLocationAddress: first.address,
-          meetingLatitude: first.latitude,
-          meetingLongitude: first.longitude
-        }));
-      }
     } catch (e) {
       setError(e.message);
     } finally {
@@ -590,14 +717,22 @@ function App() {
         setAuthModalOpen(true);
         return;
       }
+      if (!createForm.title.trim()) {
+        setCreateModalError("상품명을 입력해주세요.");
+        return;
+      }
+      if (!createForm.meetingLocationId && !createForm.meetingLocationName) {
+        setCreateModalError("거래 장소를 선택해주세요.");
+        return;
+      }
       const meetingTimeIso = toIsoFromDateAndTime(createForm.meetingDate, createForm.meetingTime);
       const deadlineIso = toIsoFromDateAndTime(createForm.deadlineDate, createForm.deadlineTime);
       if (!meetingTimeIso || !deadlineIso) {
-        setError("만나는 시간과 마감 시간을 모두 입력해주세요.");
+        setCreateModalError("만나는 시간과 마감 시간을 모두 입력해주세요.");
         return;
       }
       if (new Date(deadlineIso) > new Date(meetingTimeIso)) {
-        setError("마감 시간은 만나는 시간보다 같거나 빨라야 합니다.");
+        setCreateModalError("마감 시간은 만나는 시간보다 같거나 빨라야 합니다.");
         return;
       }
       const body = {
@@ -617,11 +752,12 @@ function App() {
       };
       await api.createRoom(body, token);
       setCreateOpen(false);
+      resetCreateForm();
       setToast("방이 생성되었습니다");
       await refreshRooms();
       await refreshMyData();
     } catch (e) {
-      setError(e.message);
+      setCreateModalError(e.message);
     }
   }
 
@@ -905,7 +1041,10 @@ function App() {
                   <div className="room-cat">{catLabels[r.category] || r.category}</div>
                   <div className="room-name">{r.title}</div>
                   <div className="room-host">방장: {r.hostNickname} <span className="host-score">{r.hostScore}점</span></div>
-                  <div className="room-price">₩{r.priceTotal.toLocaleString()} <span>{pricePerUnit(r)}</span></div>
+                  <div className="room-price">
+                    <span className="unit-price-main">{pricePerUnit(r)}</span>
+                    <span className="total-price-sub">총 ₩{r.priceTotal.toLocaleString()}</span>
+                  </div>
                 </div>
                 {/* 상태 배지 */}
                 <span className={getStatusBadgeClass(r.status)}>{statusLabel[r.status] || r.status}</span>
@@ -949,7 +1088,7 @@ function App() {
             <span key={k} className="trend-tag" onClick={() => setSearchText(k)}>{k}</span>
           ))}
         </div>
-        {page === "search" && <KakaoMapMulti locations={locations} />}
+        {page === "search" && <KakaoMapMulti locations={mapLocations} />}
         <div className="nearby-header">
           <div style={{ fontWeight: 700, fontSize: 14 }}>📍 내 근처 공동구매</div>
           <div className="nearby-count">{searchRooms.length}개</div>
@@ -961,8 +1100,8 @@ function App() {
               <div className="nearby-emoji">{catEmojis[r.category] || "📦"}</div>
               <div style={{ flex: 1 }}>
                 <div className="nearby-name">{r.title}</div>
-                <div className="nearby-sub">방장 {r.hostScore}점</div>
-                <div className="nearby-sub">📍 {r.meetingLocation?.name}</div>
+                <div className="nearby-unit-price">{pricePerUnit(r)}</div>
+                <div className="nearby-sub">방장 {r.hostScore}점 · 📍 {r.meetingLocation?.name}</div>
                 <div className="room-tags" style={{ marginTop: 4 }}>
                   <span className={`tag tag-time ${urgent ? "tag-urgent" : ""}`}>
                     ⏰ {datetimeText(r.deadline)}{urgent ? " 🔥곧마감" : ""}
@@ -1153,7 +1292,7 @@ function App() {
       </nav>
 
       {/* 방 만들기 모달 */}
-      <div className={`modal-overlay ${createOpen ? "open" : ""}`} onClick={(e) => e.target.classList.contains("modal-overlay") && setCreateOpen(false)}>
+      <div className={`modal-overlay ${createOpen ? "open" : ""}`}>
         <div className="modal">
           <div className="modal-handle" />
           <div className="modal-title">방 만들기</div>
@@ -1198,6 +1337,7 @@ function App() {
           <div className="form-group">
             <label className="form-label">거래 장소</label>
             <KakaoLocationPicker
+              isOpen={createOpen}
               locations={locations}
               selectedLocationId={createForm.meetingLocationId}
               selectedCustomLocation={
@@ -1269,8 +1409,13 @@ function App() {
               />
             </div>
           </div>
+          {createModalError && (
+            <div className="auth-error" style={{ marginBottom: 8 }}>
+              {createModalError}
+            </div>
+          )}
           <button className="submit-btn" onClick={submitCreateRoom}>방 생성하기</button>
-          <button className="cancel-btn" onClick={() => setCreateOpen(false)}>취소</button>
+          <button className="cancel-btn" onClick={() => { setCreateOpen(false); resetCreateForm(); }}>취소</button>
         </div>
       </div>
 
@@ -1289,7 +1434,8 @@ function App() {
               <div className="detail-section">
                 <div className="detail-sec-title">거래 정보</div>
                 <div className="detail-info-row"><span className="detail-info-label">방장</span><span className="detail-info-val">{detailRoom.hostNickname} ({detailRoom.hostScore}점)</span></div>
-                <div className="detail-info-row"><span className="detail-info-label">참여 가격</span><span className="detail-info-val" style={{ color: "var(--primary)" }}>₩{detailRoom.priceTotal.toLocaleString()}</span></div>
+                <div className="detail-info-row"><span className="detail-info-label">개당 가격</span><span className="detail-info-val" style={{ color: "var(--primary)", fontWeight: 800, fontSize: 17 }}>{pricePerUnit(detailRoom)}</span></div>
+                <div className="detail-info-row"><span className="detail-info-label">총 가격</span><span className="detail-info-val" style={{ color: "var(--text-muted)", fontSize: 13 }}>₩{detailRoom.priceTotal.toLocaleString()}</span></div>
                 <div className="detail-info-row"><span className="detail-info-label">거래 장소</span><span className="detail-info-val">📍 {detailRoom.meetingLocation?.name} · {detailRoom.meetingLocation?.address}</span></div>
                 <div className="detail-info-row"><span className="detail-info-label">마감</span><span className="detail-info-val">⏰ {datetimeText(detailRoom.deadline)}</span></div>
               </div>

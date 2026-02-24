@@ -117,6 +117,12 @@ public class RoomService {
         if (host.hasBlockingPendingReviews()) {
             throw new BusinessException(ErrorCode.PENDING_REVIEW_REQUIRED);
         }
+        if (!request.getDeadline().isBefore(request.getMeetingTime())) {
+            throw new BusinessException(ErrorCode.INVALID_DEADLINE);
+        }
+        if (!LocalDateTime.now().isBefore(request.getMeetingTime())) {
+            throw new BusinessException(ErrorCode.INVALID_MEETING_TIME);
+        }
 
         Location meetingLocation = resolveMeetingLocation(request);
 

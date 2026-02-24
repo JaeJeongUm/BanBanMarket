@@ -1,7 +1,7 @@
 # HANDOFF.md — 반반마켓 작업 인수인계
 
 > 매 작업 완료 시 자동 업데이트됩니다.
-> 최신 상태: **2026-02-23**
+> 최신 상태: **2026-02-24**
 
 ---
 
@@ -18,6 +18,31 @@
 ---
 
 ## 작업 이력
+
+### 2026-02-24 — 세션 #7 (지도 UX 개선)
+
+#### 요청
+- 탐색 탭 지도에 사전 배치된 마커가 너무 많다 → OPEN 방 거래 장소만 표시
+- 방 생성 지도가 표시되지 않는다 → 모달 내 지도 초기화 버그 수정
+- 지도 아래 강남역 칩 등 불필요한 항목 삭제 → 선택 장소 카드 UI로 대체
+- 방 생성 지도 초기 표시를 현재 위치로, 실패 시 강남역으로 폴백
+
+#### 완료 작업
+- **탐색 탭 지도**: `mapLocations` useMemo로 OPEN 방 거래장소만 중복 제거 후 표시, InfoWindow에 방 제목 표시
+- **지도 생성 버그 수정**: `isOpen` prop 추가, `mapObjRef` 재사용 패턴, `relayout()` 350ms 지연
+- **위치 칩 제거**: `location-chip-wrap` 및 하드코딩 장소 버튼 전부 제거
+- **선택 장소 카드 UI**: `selected-location-card` / `select-location-hint` 클래스 추가
+- **Geolocation 초기화**: `initMap(lat, lon, level)` 헬퍼 함수, `navigator.geolocation.getCurrentPosition` + 강남역 폴백(5초 타임아웃)
+- **빌드 에러 수정**: `setTimeout` 닫는 괄호 불일치(`});` → `},`) 수정, `npm run build` 성공
+
+#### 검증 결과
+- `npm run build` ✅ 성공 (367ms, 189KB JS)
+
+#### 다음 할 일
+- VPS 확보 후 실서버 배포
+- 도메인/TLS/리버스프록시/모니터링 운영값 적용
+
+---
 
 ### 2026-02-23 — 세션 #1
 
@@ -149,6 +174,77 @@
 #### 검증 결과
 - 백엔드 테스트 통과: `cd backend && mvnw.cmd test` (3건 통과)
 - 프론트 빌드: 환경 이슈로 실패 지속 (`vite/esbuild spawn EPERM`)
+
+### 2026-02-24 세션 #6
+
+#### 요청
+- `RoomResponse`에 `updatedAt` 필드 추가 (프론트엔드 `t.updatedAt || t.deadline` 표현식 지원)
+- `RoomService.createRoom`에 deadline/meetingTime 서버 검증 추가
+- `ErrorCode`에 `INVALID_DEADLINE`, `INVALID_MEETING_TIME` 에러 코드 추가
+
+#### 완료 작업
+
+**[백엔드] ErrorCode.java**
+- `INVALID_DEADLINE(400, "마감 시간은 만나는 시간보다 빨라야 합니다")` 추가
+- `INVALID_MEETING_TIME(400, "만나는 시간은 현재보다 미래여야 합니다")` 추가
+- `// Room` 섹션 하단에 기존 패턴(`int 상태코드 + String 메시지`) 동일하게 추가
+
+**[백엔드] RoomResponse.java**
+- `private LocalDateTime updatedAt;` 필드 추가 (29→30번 라인, `createdAt` 바로 아래)
+- 생성자에 `this.updatedAt = room.getUpdatedAt();` 추가
+- `Room.updatedAt`은 `@UpdateTimestamp`로 이미 관리되던 필드라 추가 도메인 변경 불필요
+
+**[백엔드] RoomService.java — createRoom 검증 강화**
+- 스코어·후기 검증 이후, 장소 조회 이전 위치에 두 검증 삽입:
+  - `deadline.isBefore(meetingTime)` 미충족 시 `INVALID_DEADLINE` throw
+  - `now.isBefore(meetingTime)` 미충족 시 `INVALID_MEETING_TIME` throw
+
+#### 검증 결과
+- 백엔드 테스트 3건 모두 통과 (BUILD SUCCESS, 6.874s)
+  - `BanbanMarketApplicationTests`: 1건 통과
+  - `ApiFlowIntegrationTest`: 2건 통과 (deadline=+1h, meetingTime=+1d 세팅이므로 신규 검증 통과)
+
+### 2026-02-24 세션 #7
+
+#### 요청
+- React UI/UX 버그 수정 및 안정화 6건 (KakaoLocationPicker 무한 재렌더링, 폼 초기화, 에러 자동소멸, 모달 내부 에러, 폼 검증, CSS 하드코딩)
+
+#### 완료 작업
+
+**[프론트엔드] KakaoLocationPicker 무한 재렌더링 버그 수정 (Critical)**
+- 원인: `onSelectCustom`이 부모에서 인라인 함수로 전달되어 매 렌더마다 새 참조 생성 → useEffect deps에 포함되어 무한 재실행
+- 수정: `onSelectCustomRef = useRef(onSelectCustom)` 패턴 적용
+  - ref 동기화 전용 `useEffect(() => { onSelectCustomRef.current = onSelectCustom; }, [onSelectCustom])` 추가
+  - 지도 초기화 useEffect의 deps에서 `onSelectCustom` 제거 → `[mapKey, selected]`만 유지
+  - useEffect 내부 콜백 호출을 `onSelectCustom(...)` → `onSelectCustomRef.current(...)` 으로 전환
+
+**[프론트엔드] resetCreateForm 함수 추가 (Critical)**
+- `resetCreateForm()` 함수 신규 추가: `locations[0]` 기본값으로 폼 전체 초기화 + `createModalError` 초기화
+- 적용 위치:
+  - `submitCreateRoom` 성공 후: `setCreateOpen(false)` 다음에 `resetCreateForm()` 호출
+  - 취소 버튼 `onClick`: `setCreateOpen(false)` + `resetCreateForm()` 동시 호출
+  - 모달 오버레이 `onClick`: `setCreateOpen(false)` + `resetCreateForm()` 동시 호출
+
+**[프론트엔드] error 상태 자동 초기화 (Medium)**
+- 기존 toast useEffect 패턴과 동일하게 `error` 상태에 4초 자동 소멸 useEffect 추가
+
+**[프론트엔드] 방 생성 모달 내부 에러 표시 (Medium)**
+- `createModalError` state 추가 (`useState("")`)
+- `submitCreateRoom` catch에서 `setError` 대신 `setCreateModalError` 사용
+- 방 생성 모달의 submit 버튼 위에 `{createModalError && <div className="auth-error">...</div>}` 추가
+
+**[프론트엔드] 방 생성 필수 입력 검증 (Minor)**
+- `submitCreateRoom` 상단에 클라이언트 검증 추가:
+  - `title.trim()` 미입력 시 "상품명을 입력해주세요." 표시
+  - `meetingLocationId` 및 `meetingLocationName` 모두 없는 경우 "거래 장소를 선택해주세요." 표시
+  - 기존 시간 검증도 `setError` → `setCreateModalError` 로 일원화
+
+**[styles.css] score-bar-fill / score-progress-fill width 하드코딩 제거 (Minor)**
+- `.score-bar-fill`에서 `width:87%;` 제거 (인라인 스타일로 동적 계산됨)
+- `.score-progress-fill`에서 `width:87%;` 제거 (인라인 스타일로 동적 계산됨)
+
+#### 검증 결과
+- 프론트 빌드 성공: `npm run build` (dist 생성 완료, 718ms)
 
 ---
 

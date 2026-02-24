@@ -27,6 +27,7 @@ public class RoomResponse {
     private RoomStatus status;
     private String imageUrl;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private Integer participantCount;
 
     public RoomResponse(Room room) {
@@ -48,6 +49,7 @@ public class RoomResponse {
         this.status = room.getStatus();
         this.imageUrl = room.getImageUrl();
         this.createdAt = room.getCreatedAt();
+        this.updatedAt = room.getUpdatedAt();
         this.participantCount = room.getParticipants() != null ? room.getParticipants().size() : 0;
     }
 }
